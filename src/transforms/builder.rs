@@ -8,7 +8,7 @@ use oxc_span::Span;
 use oxc_allocator::Vec as OxcVec;
 // use oxc_allocator::Box as OxcBox;
 
-use crate::LoopTransformer;
+use crate::transforms::LoopTransformer;
 
 impl<'alloc> LoopTransformer<'alloc> {
 
