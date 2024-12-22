@@ -1,0 +1,4 @@
+behavior:
+  update: always
+test:
+  - runner: cargo-test

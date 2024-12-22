@@ -1,4 +1,4 @@
-mod ast;
+pub mod ast;
 
 use wasm_bindgen::prelude::*;
 
@@ -11,38 +11,14 @@ use oxc_span::Span;
 use oxc_allocator::Vec as OxcVec;
 use oxc_codegen::{Codegen, CodegenOptions};
 
-// #[derive(Serialize, Deserialize)]
-#[wasm_bindgen]
+
+#[wasm_bindgen(getter_with_clone)]
 pub struct TransformResult {
-    transformed_ast: String,
-    transformed_code: String,
-    had_error: bool,
-    error_message: Option<String>,
+    pub transformed_ast: String,
+    pub transformed_code: String,
+    pub had_error: bool,
+    pub error_message: Option<String>,
 }
-
-#[wasm_bindgen]
-impl TransformResult {
-    #[wasm_bindgen(getter)]
-    pub fn transformed_code(&self) -> String {
-        self.transformed_code.clone()
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn transformed_ast(&self) -> String {
-        self.transformed_ast.clone()
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn had_error(&self) -> bool {
-        self.had_error
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn error_message(&self) -> Option<String> {
-        self.error_message.clone()
-    }
-}
-
 
 pub struct LoopTransformer<'alloc> {
     builder: AstBuilder<'alloc>,

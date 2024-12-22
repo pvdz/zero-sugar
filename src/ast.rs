@@ -2,13 +2,11 @@ use oxc_ast::ast::*;
 use oxc_ast::ast::VariableDeclarationKind;
 use oxc_syntax::operator::*;
 use oxc_syntax::reference::*;
-use oxc_syntax::symbol::SymbolId;
 use std::cell::Cell;
-use oxc_syntax::reference::ReferenceId;
 use oxc_span::Atom;
 use oxc_span::Span;
 use oxc_allocator::Vec as OxcVec;
-use oxc_allocator::Box as OxcBox;
+// use oxc_allocator::Box as OxcBox;
 
 use crate::LoopTransformer;
 
