@@ -1,6 +1,7 @@
 pub mod transforms;
 pub mod walker;
 pub mod mapper;
+pub mod get_stmt_span;
 
 use wasm_bindgen::prelude::*;
 

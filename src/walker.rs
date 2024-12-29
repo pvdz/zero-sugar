@@ -366,7 +366,29 @@ impl Walker {
                     self.visit_expression(arg);
                 }
             }
-            _ => panic!("Unsupported expression type (Stage 3 or lower)"),
+            Expression::PrivateInExpression(private_in) => {
+                // self.visit_expression(&private_in.left);
+                self.visit_expression(&private_in.right);
+            }
+            Expression::JSXElement(_) => (),
+            Expression::JSXFragment(_) => (),
+            Expression::TSAsExpression(_) => (),
+            Expression::TSSatisfiesExpression(_) => (),
+            Expression::TSTypeAssertion(_) => (),
+            Expression::TSNonNullExpression(_) => (),
+            Expression::TSInstantiationExpression(_) => (),
+            Expression::ImportExpression(_) => (),
+            Expression::Super(_) => (),
+            Expression::MetaProperty(_) => (),
+            Expression::Identifier(_) => (),
+            Expression::BooleanLiteral(_) => (),
+            Expression::NullLiteral(_) => (),
+            Expression::NumberLiteral(_) => (),
+            Expression::BigintLiteral(_) => (),
+            Expression::RegExpLiteral(_) => (),
+            Expression::StringLiteral(_) => (),
+            Expression::TemplateLiteral(_) => (),
+            Expression::ParenthesizedExpression(_) => (),
         }
 
         for visitor in &self.visitors_after {
