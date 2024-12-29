@@ -16,18 +16,32 @@ impl<'alloc> LoopTransformer<'alloc> {
     }
 
     pub fn transform_statement(&'alloc self, stmt: Statement<'alloc>) -> Result<Statement<'alloc>, &'alloc str> {
-        match stmt {
-            Statement::DoWhileStatement(do_while) => {
-                println!("Transforming DoWhileStatement");
+        // ExportNamedDeclaration -> ExportDeclaration (is that legal with the live binding?)
+        // ExportDefaultDeclaration -> ExportDeclaration
+        // ArrowFunctionExpression -> FunctionExpression
+        // FunctionExpression -> FunctionDeclaration
+        // SwitchStatement
+        // TemplateLiteral -> StringLiteral (tagged templates cannot be though, due to unicode technicality)
+        // Finally -> Catch
+        // ForInStatement -> ForStatement
+        // ForOfStatement -> WhileStatement
+        // ContinueStatement -> labeled BreakStatement
+        // hoisting -> let
+        // Destructuring stuff
+        // Complex params
+        // Await For
+        // Optional Chaining
+        // Coalescing
+        // pow
 
-                let do_while = do_while.unbox();
-                stmt_do_while::transform_do_while_statement(&self, do_while)
+        match stmt {
+            Statement::DoWhileStatement(do_while_stmt) => {
+                stmt_do_while::transform_do_while_statement(&self, do_while_stmt.unbox())
             }
             Statement::ForStatement(for_stmt) => {
-                println!("Transforming ForStatement");
-                let for_stmt = for_stmt.unbox();
-                stmt_for::transform_for_statement(&self, for_stmt)
+                stmt_for::transform_for_statement(&self, for_stmt.unbox())
             }
+
             other => Ok(other),
         }
     }

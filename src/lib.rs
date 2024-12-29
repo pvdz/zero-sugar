@@ -1,4 +1,6 @@
 pub mod transforms;
+pub mod walker;
+pub mod mapper;
 
 use wasm_bindgen::prelude::*;
 
@@ -23,6 +25,33 @@ pub struct TransformResult {
 
 fn _span_tofix() -> Span {
     Span::default()
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+pub fn console_log(s: String) {
+    #[cfg(not(target_arch = "wasm32"))]
+    println!("{}", s);
+
+    #[cfg(target_arch = "wasm32")]
+    log(&format!("[Rust] {}", s));
+}
+
+// Simple wrapper for `log(format!())` into `log!()`
+// This will println!() in CLI and console.log(format!()) in nodejs etc
+#[macro_export]
+macro_rules! log {
+    ($fmt_str:literal) => {
+        console_log(format!($fmt_str))
+    };
+
+    ($fmt_str:literal, $($args:expr),*) => {
+        console_log(format!($fmt_str, $($args),*))
+    };
 }
 
 #[wasm_bindgen]

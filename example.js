@@ -1,4 +1,4 @@
-const { transform_code } = require('./pkg/js_transformer.js');
+const { transform_code } = require('./pkg/zero_sugar.js');
 
 // Example usage
 const sourceCode = `
