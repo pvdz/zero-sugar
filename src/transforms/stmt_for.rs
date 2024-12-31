@@ -1,71 +1,70 @@
 use oxc_allocator::Vec as OxcVec;
+use oxc_allocator::Box as OxcBox;
 use oxc_ast::ast::*;
+use oxc_allocator::Allocator;
 
-use crate::transforms::LoopTransformer;
+use crate::mapper_state::MapperState;
 
-pub fn transform_for_statement<'alloc>(
-    transformer: &'alloc LoopTransformer<'alloc>,
-    for_stmt: ForStatement<'alloc>
-) -> Result<Statement<'alloc>, &'alloc str> {
-    let ForStatement {
-        init,
-        test,
-        update,
-        body,
-        span
-    } = for_stmt;
+pub fn transform_for_statement_inner<'a>(
+    for_stmt: ForStatement<'a>,
+    allocator: &'a Allocator,
+    _state: &mut MapperState
+) -> Statement<'a> {
+    let ForStatement { init, test, update, body, span } = for_stmt;
 
-    let test = match test {
-        Some(test) => test,
-        None => transformer.create_bool(true, span),
-    };
+    // Create the while loop test expression - defaults to true if no test provided
+    let test = test.unwrap_or_else(|| Expression::BooleanLiteral(OxcBox(allocator.alloc(BooleanLiteral {
+        value: true,
+        span,
+    }))));
 
-    let mut new_body = OxcVec::with_capacity_in(2, &transformer.builder.allocator);
-    new_body.push(body);
+    // Create the while loop body
+    let mut while_body = OxcVec::with_capacity_in(2, allocator);
+    while_body.push(body);
 
+    // Add update expression if it exists
     if let Some(update) = update {
-        let expr_stmt = transformer.create_expression_statement(update, span);
-        new_body.push(expr_stmt);
+        while_body.push(Statement::ExpressionStatement(OxcBox(allocator.alloc(ExpressionStatement {
+            expression: update,
+            span,
+        }))));
     }
 
-    let while_block = transformer.create_block_statement(new_body, span);
-    let while_stmt = transformer.create_while_statement(test, while_block, span);
+    let while_stmt = Statement::WhileStatement(OxcBox(allocator.alloc(WhileStatement {
+        test,
+        body: Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+            body: while_body,
+            span,
+        }))),
+        span,
+    })));
 
+    // If there's an initializer, create a block containing it and the while loop
     if let Some(init) = init {
-        let mut block_body = OxcVec::with_capacity_in(2, &transformer.builder.allocator);
+        let mut block_body = OxcVec::with_capacity_in(2, allocator);
 
         match init {
             ForStatementInit::Expression(expr) => {
-                block_body.push(transformer.create_expression_statement(expr, span));
-            },
-            ForStatementInit::UsingDeclaration(_decl) => {
-                return Err("The `using` syntax is not supported by this tool");
-            },
-            ForStatementInit::VariableDeclaration(decl_stmt) => {
-                let decl_stmt = decl_stmt.unbox();
-                let VariableDeclaration {
-                    kind,
-                    declarations,
+                block_body.push(Statement::ExpressionStatement(OxcBox(allocator.alloc(ExpressionStatement {
+                    expression: expr,
                     span,
-                    modifiers
-                } = decl_stmt;
-
-                block_body.push(Statement::Declaration(
-                    Declaration::VariableDeclaration(
-                        transformer.builder.alloc(VariableDeclaration {
-                            kind,
-                            declarations,
-                            span,
-                            modifiers,
-                        })
-                    )
-                ));
+                }))));
+            },
+            ForStatementInit::UsingDeclaration(_) => {
+                panic!("The `using` syntax is not supported by this tool");
+            },
+            ForStatementInit::VariableDeclaration(decl) => {
+                block_body.push(Statement::Declaration(Declaration::VariableDeclaration(decl)));
             },
         };
 
         block_body.push(while_stmt);
-        Ok(transformer.create_block_statement(block_body, span))
+
+        Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+            body: block_body,
+            span,
+        })))
     } else {
-        Ok(while_stmt)
+        while_stmt
     }
 }

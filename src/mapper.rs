@@ -1,7 +1,12 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use oxc_ast::ast::*;
 use oxc_allocator::Vec as OxcVec;
 use oxc_allocator::Box as OxcBox;
 use oxc_allocator::Allocator;
+
+use crate::mapper_state::MapperState;
 
 pub struct Mapper<'a> {
     allocator: &'a Allocator,
@@ -9,6 +14,7 @@ pub struct Mapper<'a> {
     visitors_after_stmt: Vec<Box<dyn Fn(Statement<'a>, &'a Allocator) -> Statement<'a>>>,
     visitors_before_expr: Vec<Box<dyn Fn(Expression<'a>, &'a Allocator) -> Expression<'a>>>,
     visitors_after_expr: Vec<Box<dyn Fn(Expression<'a>, &'a Allocator) -> Expression<'a>>>,
+    pub state: Rc<RefCell<MapperState>>,
 }
 
 #[derive(Debug)]
@@ -25,6 +31,7 @@ impl<'a> Mapper<'a> {
             visitors_after_stmt: Vec::new(),
             visitors_before_expr: Vec::new(),
             visitors_after_expr: Vec::new(),
+            state: Rc::new(RefCell::new(MapperState { id_counter: 0 })),
         }
     }
 
@@ -291,7 +298,7 @@ impl<'a> Mapper<'a> {
 
     fn map_expression(&self, mut expr: Expression<'a>) -> Expression<'a> {
         for visitor in &self.visitors_before_expr {
-            expr = visitor(expr, &self.allocator);
+            expr = visitor(expr, self.allocator);
         }
 
         expr = match expr {
@@ -738,6 +745,18 @@ impl<'a> Mapper<'a> {
             Expression::Identifier(ident) => Expression::Identifier(ident),
             Expression::MetaProperty(meta) => Expression::MetaProperty(meta), // import.meta
             Expression::Super(superrrr) => Expression::Super(superrrr),
+            Expression::ParenthesizedExpression(expr) => {
+                let ParenthesizedExpression { expression, span } = expr.unbox();
+                Expression::ParenthesizedExpression(OxcBox(self.allocator.alloc(ParenthesizedExpression { expression: self.map_expression(expression), span })))
+            }
+            Expression::ImportExpression(import) => {
+                let ImportExpression { source, arguments, span } = import.unbox();
+                Expression::ImportExpression(OxcBox(self.allocator.alloc(ImportExpression { source: self.map_expression(source), arguments, span })))
+            }
+            Expression::BigintLiteral(literal) => {
+                let BigintLiteral { value, base, span } = literal.unbox();
+                Expression::BigintLiteral(OxcBox(self.allocator.alloc(BigintLiteral { value, base, span })))
+            }
 
             // This represents `#field in obj` in private class fields
             Expression::PrivateInExpression(_) => panic!("PrivateInExpression (stage 3) is not supported"),
@@ -749,9 +768,6 @@ impl<'a> Mapper<'a> {
             Expression::TSTypeAssertion(_) => panic!("TSTypeAssertion is not supported"),
             Expression::TSNonNullExpression(_) => panic!("TSNonNullExpression is not supported"),
             Expression::TSInstantiationExpression(_) => panic!("TSInstantiationExpression is not supported"),
-            Expression::ParenthesizedExpression(_) => panic!("ParenthesizedExpression is not supported"),
-            Expression::ImportExpression(_) => panic!("ImportExpression is not supported"),
-            Expression::BigintLiteral(_) => panic!("BigintLiteral is not supported"),
         };
 
         for visitor in &self.visitors_after_expr {

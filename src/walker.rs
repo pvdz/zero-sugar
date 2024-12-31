@@ -1,5 +1,4 @@
 use oxc_ast::ast::*;
-use oxc_allocator::Box as OxcBox;
 
 pub struct Walker {
     visitors_before: Vec<Box<dyn Fn(&Node)>>,

@@ -1,32 +1,97 @@
 use oxc_allocator::Vec as OxcVec;
+use oxc_allocator::Box as OxcBox;
 use oxc_ast::ast::*;
+use oxc_span::Atom;
+use std::cell::Cell;
+use oxc_syntax::operator::*;
+use oxc_syntax::reference::*;
+use oxc_allocator::Allocator;
 
-use crate::transforms::LoopTransformer;
+use crate::mapper_state::MapperState;
 
-pub fn transform_do_while_statement<'alloc>(transformer: &'alloc LoopTransformer<'alloc>, do_while: DoWhileStatement<'alloc>) -> Result<Statement<'alloc>, &'alloc str> {
+pub fn transform_do_while_statement_inner<'a>(
+    do_while: DoWhileStatement<'a>,
+    allocator: &'a Allocator,
+    state: &mut MapperState
+) -> Statement<'a> {
+    let loop_test_ident = state.next_ident_name();
+
     let DoWhileStatement { body, test, span } = do_while;
+    // Create a block with test variable and while loop
+    let mut outer_body = OxcVec::with_capacity_in(2, &allocator);
 
-    // `do x; while (y)`
-    //   ->
-    // `{ let test = false; while (test) { x; test = y } }`
-
-    // So create a block with two statements; the decl and the while
-    // The while gets a new block with two statements; the do-while-body and an update to the decl
-
-    let mut outer_body = OxcVec::with_capacity_in(2, &transformer.builder.allocator);
-    outer_body.push(
-        transformer.create_variable_declaration("test".to_string(), Some(transformer.create_bool(true, span)), span)
+    // Add test variable declaration. Init to `true` to enter the loop at least once (do-while)
+    // `var $tmp = true;`
+    let test_decl = Statement::Declaration(
+        Declaration::VariableDeclaration(OxcBox(allocator.alloc(VariableDeclaration {
+            kind: VariableDeclarationKind::Let,
+            declarations: {
+                let mut decls = OxcVec::with_capacity_in(1, &allocator);
+                decls.push(VariableDeclarator {
+                    id: BindingPattern {
+                        kind: BindingPatternKind::BindingIdentifier(OxcBox(allocator.alloc(BindingIdentifier {
+                            name: Atom::from(loop_test_ident.clone()),
+                            symbol_id: Cell::default(),
+                            span,
+                        }))),
+                        type_annotation: None,
+                        optional: false,
+                    },
+                    init: Some(Expression::BooleanLiteral(OxcBox(allocator.alloc(BooleanLiteral {
+                        value: true,
+                        span,
+                    })))),
+                    definite: false,
+                    span,
+                    kind: VariableDeclarationKind::Let,
+                });
+                decls
+            },
+            span,
+            modifiers: Modifiers::empty(),
+        })))
     );
+    outer_body.push(test_decl);
 
-    // Create the regular while statement now...
-    let mut inner_body = OxcVec::with_capacity_in(2, &transformer.builder.allocator);
-    inner_body.push(body);
-    inner_body.push(transformer.create_expression_statement(transformer.create_assignment_expression_name("test".to_string(), test, span), span));
-    let inner_block = transformer.create_block_statement(inner_body, span);
-    let while_stmt = transformer.create_while_statement(transformer.create_identifier_expression("test".to_string(), span), inner_block, span);
+    // Create the while loop body
+    let mut while_body = OxcVec::with_capacity_in(2, &allocator);
+    while_body.push(body);
+    while_body.push(Statement::ExpressionStatement(OxcBox(allocator.alloc(ExpressionStatement {
+        expression: Expression::AssignmentExpression(OxcBox(allocator.alloc(AssignmentExpression {
+            operator: AssignmentOperator::Assign,
+            left: AssignmentTarget::SimpleAssignmentTarget(
+                SimpleAssignmentTarget::AssignmentTargetIdentifier(OxcBox(allocator.alloc(IdentifierReference {
+                    name: Atom::from(loop_test_ident.clone()),
+                    span,
+                    reference_id: Cell::default(),
+                    reference_flag: ReferenceFlag::default(),
+                })))
+            ),
+            right: test,
+            span,
+        }))),
+        span,
+    }))));
 
+    // Create the while statement
+    let while_stmt = Statement::WhileStatement(OxcBox(allocator.alloc(WhileStatement {
+        test: Expression::Identifier(OxcBox(allocator.alloc(IdentifierReference {
+            name: Atom::from(loop_test_ident),
+            span,
+            reference_id: Cell::default(),
+            reference_flag: ReferenceFlag::default(),
+        }))),
+        body: Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+            body: while_body,
+            span,
+        }))),
+        span,
+    })));
     outer_body.push(while_stmt);
-    let outer_block = transformer.create_block_statement(outer_body, span);
 
-    Ok(outer_block)
+    // Return the block containing everything
+    Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+        body: outer_body,
+        span,
+    })))
 }
