@@ -53,16 +53,16 @@ fn test_dowhile_to_while_mapping() {
             block_body.push(body);
 
             // Create the while statement with a true test
-            Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
+            (false, Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
                 test,
                 body: Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
                     body: block_body,
                     span: body_span,
                 }))),
                 span: do_span
-            })))
+            }))))
         }
-        other => other,
+        other => (false, other)
     });
 
     let source = "do { console.log('test'); } while (x > 0);";
@@ -113,16 +113,16 @@ fn test_dowhile_to_while_mapping_serialized() {
             let DoWhileStatement { body, test, span } = do_while.unbox();
             let mut block_body = OxcVec::with_capacity_in(1, alloc);
             block_body.push(body);
-            Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
+            (false, Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
                 test,
                 body: Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
                     body: block_body,
                     span
                 }))),
                 span
-            })))
+            }))))
         }
-        other => other,
+        other => (false, other)
     });
 
     let source = "do { console.log('test'); } while (x > 0);";

@@ -9,7 +9,7 @@ pub fn transform_for_statement_inner<'a>(
     for_stmt: ForStatement<'a>,
     allocator: &'a Allocator,
     _state: &mut MapperState
-) -> Statement<'a> {
+) -> (bool, Statement<'a>) {
     let ForStatement { init, test, update, body, span } = for_stmt;
 
     // Create the while loop test expression - defaults to true if no test provided
@@ -60,11 +60,11 @@ pub fn transform_for_statement_inner<'a>(
 
         block_body.push(while_stmt);
 
-        Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+        (true, Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
             body: block_body,
             span,
-        })))
+        }))))
     } else {
-        while_stmt
+        (false, while_stmt)
     }
 }

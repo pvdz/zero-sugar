@@ -101,12 +101,12 @@ fn parse_and_map(source: &str) -> String {
             outer_body.push(while_stmt);
 
             // Return the block containing everything
-            Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
+            (false, Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
                 body: outer_body,
                 span,
-            })))
+            }))))
         }
-        other => other,
+        other => (false, other),
     });
 
     let transformed = mapper.map(parsed.program);

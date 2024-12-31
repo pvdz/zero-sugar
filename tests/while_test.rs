@@ -22,7 +22,7 @@ fn parse_and_map(source: &str) -> String {
         Statement::DoWhileStatement(do_while) => {
             transform_do_while_statement_inner(do_while.unbox(), allocator, &mut state.borrow_mut())
         }
-        other => other,
+        other => (false, other),
     });
 
     let transformed = mapper.map(parsed.program);

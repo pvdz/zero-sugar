@@ -22,7 +22,7 @@ fn parse_and_map(source: &str) -> String {
         Statement::ForStatement(for_stmt) => {
             transform_for_statement_inner(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        other => other,
+        other => (false, other),
     });
 
     let transformed = mapper.map(parsed.program);
