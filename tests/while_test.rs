@@ -7,7 +7,7 @@ use oxc_codegen::{Codegen, CodegenOptions};
 use oxc_ast::ast::*;
 
 use zero_sugar::mapper::create_mapper;
-use zero_sugar::transforms::stmt_do_while::transform_do_while_statement_inner;
+use zero_sugar::transforms::stmt_do_while::transform_do_while_statement;
 
 fn parse_and_map(source: &str) -> String {
     let allocator = Allocator::default();
@@ -20,7 +20,7 @@ fn parse_and_map(source: &str) -> String {
 
     mapper.add_visitor_after_stmt(move |stmt, allocator| match stmt {
         Statement::DoWhileStatement(do_while) => {
-            transform_do_while_statement_inner(do_while.unbox(), allocator, &mut state.borrow_mut())
+            transform_do_while_statement(do_while.unbox(), allocator, &mut state.borrow_mut())
         }
         other => (false, other),
     });

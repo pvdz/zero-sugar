@@ -5,7 +5,7 @@ use oxc_allocator::Allocator;
 
 use crate::mapper_state::MapperState;
 
-pub fn transform_for_statement_inner<'a>(
+pub fn transform_for_n_statement<'a>(
     for_stmt: ForStatement<'a>,
     allocator: &'a Allocator,
     _state: &mut MapperState

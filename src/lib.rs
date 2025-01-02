@@ -13,9 +13,9 @@ use oxc_span::Span;
 use oxc_codegen::{Codegen, CodegenOptions};
 
 use crate::mapper::create_mapper;
-use crate::transforms::stmt_do_while::transform_do_while_statement_inner;
-use crate::transforms::stmt_for::transform_for_statement_inner;
-use crate::transforms::stmt_finally::transform_finally_statement_inner;
+use crate::transforms::stmt_do_while::transform_do_while_statement;
+use crate::transforms::stmt_for_n::transform_for_n_statement;
+use crate::transforms::stmt_finally::transform_finally_statement;
 
 #[wasm_bindgen(getter_with_clone)]
 pub struct TransformResult {
@@ -80,13 +80,13 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
 
     mapper.add_visitor_after_stmt(move |stmt, allocator| match stmt {
         Statement::DoWhileStatement(do_while) => {
-            transform_do_while_statement_inner(do_while.unbox(), allocator, &mut state.borrow_mut())
+            transform_do_while_statement(do_while.unbox(), allocator, &mut state.borrow_mut())
         }
         Statement::ForStatement(for_stmt) => {
-            transform_for_statement_inner(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+            transform_for_n_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
         Statement::TryStatement(try_stmt) => {
-            transform_finally_statement_inner(try_stmt.unbox(), allocator, &mut state.borrow_mut())
+            transform_finally_statement(try_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
         other => (false, other),
     });

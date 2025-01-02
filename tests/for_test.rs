@@ -7,7 +7,7 @@ use oxc_codegen::{Codegen, CodegenOptions};
 use oxc_ast::ast::*;
 
 use zero_sugar::mapper::create_mapper;
-use zero_sugar::transforms::stmt_for::transform_for_statement_inner;
+use zero_sugar::transforms::stmt_for_n::transform_for_n_statement;
 
 fn parse_and_map(source: &str) -> String {
     let allocator = Allocator::default();
@@ -20,7 +20,7 @@ fn parse_and_map(source: &str) -> String {
 
     mapper.add_visitor_after_stmt(move |stmt, allocator| match stmt {
         Statement::ForStatement(for_stmt) => {
-            transform_for_statement_inner(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+            transform_for_n_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
         other => (false, other),
     });

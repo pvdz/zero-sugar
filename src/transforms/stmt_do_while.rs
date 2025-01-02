@@ -9,7 +9,7 @@ use oxc_allocator::Allocator;
 
 use crate::mapper_state::MapperState;
 
-pub fn transform_do_while_statement_inner<'a>(
+pub fn transform_do_while_statement<'a>(
     do_while: DoWhileStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState

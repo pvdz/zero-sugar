@@ -24,7 +24,7 @@ const RETURN_ACTION_ID_STR: &str = "2";
 //
 const BREAK_ACTION_ID_OFFSET: f64 = 3.0;
 
-pub fn transform_finally_statement_inner<'a>(
+pub fn transform_finally_statement<'a>(
     try_stmt: TryStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
