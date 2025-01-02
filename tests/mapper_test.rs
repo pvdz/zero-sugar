@@ -43,8 +43,8 @@ fn test_dowhile_to_while_mapping() {
     let allocator = Box::leak(Box::new(Allocator::default()));
     let mut mapper = create_mapper(allocator);
 
-    mapper.add_visitor_before_stmt(|stmt: Statement<'_>, alloc| match stmt {
-        Statement::DoWhileStatement(do_while) => {
+    mapper.add_visitor_stmt(|stmt: Statement<'_>, alloc, before: bool| match ( before, stmt ) {
+        (false, Statement::DoWhileStatement(do_while)) => {
             let DoWhileStatement { body, test, span: do_span } = do_while.unbox();
             let body_span = get_stmt_span(&body);
 
@@ -62,7 +62,7 @@ fn test_dowhile_to_while_mapping() {
                 span: do_span
             }))))
         }
-        other => (false, other)
+        (_, other) => (false, other)
     });
 
     let source = "do { console.log('test'); } while (x > 0);";
@@ -108,8 +108,8 @@ fn test_dowhile_to_while_mapping_serialized() {
     let allocator = Box::new(Allocator::default());
     let mut mapper = create_mapper(&allocator);
 
-    mapper.add_visitor_before_stmt(|stmt: Statement<'_>, alloc| match stmt {
-        Statement::DoWhileStatement(do_while) => {
+    mapper.add_visitor_stmt(|stmt: Statement<'_>, alloc, before: bool| match ( before, stmt ) {
+        (true, Statement::DoWhileStatement(do_while)) => {
             let DoWhileStatement { body, test, span } = do_while.unbox();
             let mut block_body = OxcVec::with_capacity_in(1, alloc);
             block_body.push(body);
@@ -122,7 +122,7 @@ fn test_dowhile_to_while_mapping_serialized() {
                 span
             }))))
         }
-        other => (false, other)
+        (_, other) => (false, other)
     });
 
     let source = "do { console.log('test'); } while (x > 0);";

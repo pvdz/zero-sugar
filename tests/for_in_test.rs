@@ -22,13 +22,11 @@ fn parse_and_map(source: &str) -> String {
     let mut mapper = create_mapper(&allocator);
     let state = mapper.state.clone();
 
-    mapper.add_visitor_after_stmt(move |stmt, allocator| match stmt {
-        Statement::ForInStatement(for_stmt) => {
+    mapper.add_visitor_stmt(move |stmt, allocator, before: bool| match ( before, stmt ) {
+        (false, Statement::ForInStatement(for_stmt)) => {
             transform_for_in_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        other => {
-            (false, other)
-        }
+        (_, other) => (false, other),
     });
 
     let transformed = mapper.map(parsed.program);

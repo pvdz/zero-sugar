@@ -10,10 +10,8 @@ use crate::mapper_state::MapperState;
 
 pub struct Mapper<'a> {
     allocator: &'a Allocator,
-    visitors_before_stmt: Vec<Box<dyn Fn(Statement<'a>, &'a Allocator) -> (bool, Statement<'a>)>>,
-    visitors_after_stmt: Vec<Box<dyn Fn(Statement<'a>, &'a Allocator) -> (bool, Statement<'a>)>>,
-    visitors_before_expr: Vec<Box<dyn Fn(Expression<'a>, &'a Allocator) -> (bool, Expression<'a>)>>,
-    visitors_after_expr: Vec<Box<dyn Fn(Expression<'a>, &'a Allocator) -> (bool, Expression<'a>)>>,
+    visitors_stmt: Vec<Box<dyn Fn(Statement<'a>, &'a Allocator, bool) -> (bool, Statement<'a>)>>,
+    visitors_expr: Vec<Box<dyn Fn(Expression<'a>, &'a Allocator, bool) -> (bool, Expression<'a>)>>,
     pub state: Rc<RefCell<MapperState>>,
 }
 
@@ -27,41 +25,27 @@ impl<'a> Mapper<'a> {
     pub fn new(allocator: &'a Allocator) -> Self {
         Self {
             allocator,
-            visitors_before_stmt: Vec::new(),
-            visitors_after_stmt: Vec::new(),
-            visitors_before_expr: Vec::new(),
-            visitors_after_expr: Vec::new(),
-            state: Rc::new(RefCell::new(MapperState { id_counter: 0 })),
+            visitors_stmt: Vec::new(),
+            visitors_expr: Vec::new(),
+            state: Rc::new(RefCell::new(MapperState { id_counter: 0, continue_targets: vec![] })),
         }
     }
 
-    pub fn add_visitor_before_stmt<F>(&mut self, visitor: F)
+    pub fn add_visitor_stmt<F>(&mut self, visitor: F)
     where
-        F: Fn(Statement<'a>, &'a Allocator) -> (bool, Statement<'a>) + 'static,
+        F: Fn(Statement<'a>, &'a Allocator, bool) -> (bool, Statement<'a>) + 'static,
     {
-        self.visitors_before_stmt.push(Box::new(visitor));
+        self.visitors_stmt.push(Box::new(visitor));
     }
 
-    pub fn add_visitor_after_stmt<F>(&mut self, visitor: F)
+
+    pub fn add_visitor_expr<F>(&mut self, visitor: F)
     where
-        F: Fn(Statement<'a>, &'a Allocator) -> (bool, Statement<'a>) + 'static,
+        F: Fn(Expression<'a>, &'a Allocator, bool) -> (bool, Expression<'a>) + 'static,
     {
-        self.visitors_after_stmt.push(Box::new(visitor));
+        self.visitors_expr.push(Box::new(visitor));
     }
 
-    pub fn add_visitor_before_expr<F>(&mut self, visitor: F)
-    where
-        F: Fn(Expression<'a>, &'a Allocator) -> (bool, Expression<'a>) + 'static,
-    {
-        self.visitors_before_expr.push(Box::new(visitor));
-    }
-
-    pub fn add_visitor_after_expr<F>(&mut self, visitor: F)
-    where
-        F: Fn(Expression<'a>, &'a Allocator) -> (bool, Expression<'a>) + 'static,
-    {
-        self.visitors_after_expr.push(Box::new(visitor));
-    }
 
     pub fn map(&self, program: Program<'a>) -> Program<'a> {
         let Program { body,  span, source_type, directives, hashbang } = program;
@@ -75,8 +59,8 @@ impl<'a> Mapper<'a> {
     fn map_statement(&self, mut stmt: Statement<'a>) -> Statement<'a> {
         // Apply before visitors first
         let mut skip_visit = false;
-        for visitor in &self.visitors_before_stmt {
-            let (should_skip, new_stmt) = visitor(stmt, self.allocator);
+        for visitor in &self.visitors_stmt {
+            let (should_skip, new_stmt) = visitor(stmt, self.allocator, true);
             stmt = new_stmt;
             skip_visit |= should_skip;
         }
@@ -298,8 +282,8 @@ impl<'a> Mapper<'a> {
 
         // Apply after visitors and potentially revisit
         let mut should_revisit = false;
-        for visitor in &self.visitors_after_stmt {
-            let (revisit, new_stmt) = visitor(stmt, self.allocator);
+        for visitor in &self.visitors_stmt {
+            let (revisit, new_stmt) = visitor(stmt, self.allocator, false);
             stmt = new_stmt;
             should_revisit |= revisit;
         }
@@ -315,8 +299,8 @@ impl<'a> Mapper<'a> {
     fn map_expression(&self, mut expr: Expression<'a>) -> Expression<'a> {
         // Apply before visitors first
         let mut skip_visit = false;
-        for visitor in &self.visitors_before_expr {
-            let (should_skip, new_expr) = visitor(expr, self.allocator);
+        for visitor in &self.visitors_expr {
+            let (should_skip, new_expr) = visitor(expr, self.allocator, true);
             expr = new_expr;
             skip_visit |= should_skip;
         }
@@ -795,8 +779,8 @@ impl<'a> Mapper<'a> {
 
         // Apply after visitors and potentially revisit
         let mut should_revisit = false;
-        for visitor in &self.visitors_after_expr {
-            let (revisit, new_expr) = visitor(expr, self.allocator);
+        for visitor in &self.visitors_expr {
+            let (revisit, new_expr) = visitor(expr, self.allocator, false);
             expr = new_expr;
             should_revisit |= revisit;
         }

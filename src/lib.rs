@@ -18,6 +18,7 @@ use crate::mapper::create_mapper;
 use crate::transforms::stmt_do_while::transform_do_while_statement;
 use crate::transforms::stmt_for_n::transform_for_n_statement;
 use crate::transforms::stmt_finally::transform_finally_statement;
+use crate::transforms::stmt_continue::transform_continue_statement;
 
 #[wasm_bindgen(getter_with_clone)]
 pub struct TransformResult {
@@ -84,23 +85,24 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
     let mut mapper = create_mapper(allocator);
     let state = mapper.state.clone();
 
-    mapper.add_visitor_after_stmt(move |stmt, allocator| match stmt {
-        Statement::DoWhileStatement(do_while) => {
+    mapper.add_visitor_stmt(move |stmt, allocator, before: bool| match ( before, stmt ) {
+        (false, Statement::DoWhileStatement(do_while)) => {
             transform_do_while_statement(do_while.unbox(), allocator, &mut state.borrow_mut())
         }
-        Statement::ForStatement(for_stmt) => {
+        (false, Statement::ForStatement(for_stmt)) => {
             transform_for_n_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        Statement::ForInStatement(for_stmt) => {
+        (false, Statement::ForInStatement(for_stmt)) => {
             transform_for_in_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        Statement::ForOfStatement(for_stmt) => {
+        (false, Statement::ForOfStatement(for_stmt)) => {
             transform_for_of_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        Statement::TryStatement(try_stmt) => {
+        (false, Statement::TryStatement(try_stmt)) => {
             transform_finally_statement(try_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        other => (false, other),
+        (false, other) => (false, other),
+        (true, stmt) => (false, stmt),
     });
 
     let transformed = mapper.map(parsed.program);

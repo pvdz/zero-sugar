@@ -29,8 +29,8 @@ fn parse_and_map(source: &str) -> String {
     let mut mapper = create_mapper(&allocator);
 
     // Add visitor to transform do-while into while
-    mapper.add_visitor_after_stmt(|stmt, alloc| match stmt {
-        Statement::DoWhileStatement(do_while) => {
+    mapper.add_visitor_stmt(|stmt, alloc, before: bool| match ( before, stmt ) {
+        (false, Statement::DoWhileStatement(do_while)) => {
             let DoWhileStatement { body, test, span } = do_while.unbox();
 
             // Create a block with test variable and while loop
@@ -110,7 +110,7 @@ fn parse_and_map(source: &str) -> String {
                 span,
             }))))
         }
-        other => (false, other),
+        (_, other) => (false, other),
     });
 
     let transformed = mapper.map(parsed.program);
