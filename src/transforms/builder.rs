@@ -1,5 +1,4 @@
 use oxc_ast::ast::*;
-use oxc_ast::ast::VariableDeclarationKind;
 use oxc_syntax::operator::*;
 use oxc_syntax::reference::*;
 use oxc_syntax::NumberBase;
@@ -10,26 +9,33 @@ use oxc_allocator::Vec as OxcVec;
 use oxc_allocator::Box as OxcBox;
 use oxc_allocator::Allocator;
 
+pub fn create_assignment_expression<'alloc>(
+    allocator: &'alloc Allocator,
+    operator: AssignmentOperator,
+    left: IdentifierReference,
+    right: Expression<'alloc>,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::AssignmentExpression(OxcBox(allocator.alloc(AssignmentExpression {
+        operator,
+        left: AssignmentTarget::SimpleAssignmentTarget(SimpleAssignmentTarget::AssignmentTargetIdentifier(OxcBox(allocator.alloc(left)))),
+        right,
+        span
+    })))
+}
+
 pub fn create_assignment_expression_name<'alloc>(
     allocator: &'alloc Allocator,
     left_name: String,
     right: Expression<'alloc>,
     span: Span
 ) -> Expression<'alloc> {
-    Expression::AssignmentExpression(
-        OxcBox(allocator.alloc(AssignmentExpression {
-            operator: AssignmentOperator::Assign,
-            left: AssignmentTarget::SimpleAssignmentTarget(SimpleAssignmentTarget::AssignmentTargetIdentifier(
-                OxcBox(allocator.alloc(IdentifierReference {
-                    name: Atom::from(left_name),
-                    span,
-                    reference_id: Cell::default(),
-                    reference_flag: ReferenceFlag::default(),
-                }))
-            )),
-            right,
-            span,
-        }))
+    create_assignment_expression(
+        allocator,
+        AssignmentOperator::Assign,
+        create_identifier_reference(allocator, left_name, span),
+        right,
+        span
     )
 }
 
@@ -123,6 +129,28 @@ pub fn create_catch_clause<'alloc>(
     }
 }
 
+pub fn create_call_expression<'alloc>(
+    allocator: &'alloc Allocator,
+    callee: Expression<'alloc>,
+    arguments: OxcVec<'alloc, Expression<'alloc>>,
+    optional: bool,
+    type_parameters: Option<OxcBox<'alloc, TSTypeParameterInstantiation<'alloc>>>,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::CallExpression(
+        OxcBox(allocator.alloc(CallExpression {
+            callee,
+            arguments: OxcVec::from_iter_in(
+                arguments.into_iter().map(|expr| Argument::Expression(expr)),
+                allocator
+            ),
+            optional,
+            type_parameters,
+            span,
+        }))
+    )
+}
+
 pub fn create_expression_statement<'alloc>(
     allocator: &'alloc Allocator,
     expression: Expression<'alloc>,
@@ -151,6 +179,19 @@ pub fn create_identifier_expression<'alloc>(
     )
 }
 
+pub fn create_identifier_reference<'alloc>(
+    allocator: &'alloc Allocator,
+    name: String,
+    span: Span
+) -> IdentifierReference {
+    IdentifierReference {
+        name: Atom::from(name),
+        span,
+        reference_id: Cell::default(),
+        reference_flag: ReferenceFlag::default(),
+    }
+}
+
 pub fn create_if_statement<'alloc>(
     allocator: &'alloc Allocator,
     test: Expression<'alloc>,
@@ -177,6 +218,20 @@ pub fn create_labeled_statement<'alloc>(
         body,
         span,
     })))
+}
+
+pub fn create_member_expression<'alloc>(
+    allocator: &'alloc Allocator,
+    object: Expression<'alloc>,
+    property: String,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::MemberExpression(OxcBox(allocator.alloc(MemberExpression::StaticMemberExpression(StaticMemberExpression {
+        object,
+        property: IdentifierName { name: Atom::from(property), span },
+        optional: false,
+        span,
+    }))))
 }
 
 pub fn create_number_literal<'alloc>(
@@ -293,8 +348,36 @@ pub fn create_variable_declarator<'alloc>(
     }
 }
 
-pub fn create_variable_declaration<'alloc>(
+pub fn create_variable_declaration_var<'alloc>(
     allocator: &'alloc Allocator,
+    name: String,
+    init: Option<Expression<'alloc>>,
+    span: Span
+) -> Statement<'alloc> {
+    create_variable_declaration_kind(allocator, VariableDeclarationKind::Var, name, init, span)
+}
+
+pub fn create_variable_declaration_let<'alloc>(
+    allocator: &'alloc Allocator,
+    name: String,
+    init: Option<Expression<'alloc>>,
+    span: Span
+) -> Statement<'alloc> {
+    create_variable_declaration_kind(allocator, VariableDeclarationKind::Let, name, init, span)
+}
+
+pub fn create_variable_declaration_const<'alloc>(
+    allocator: &'alloc Allocator,
+    name: String,
+    init: Option<Expression<'alloc>>,
+    span: Span
+) -> Statement<'alloc> {
+    create_variable_declaration_kind(allocator, VariableDeclarationKind::Const, name, init, span)
+}
+
+pub fn create_variable_declaration_kind<'alloc>(
+    allocator: &'alloc Allocator,
+    kind: VariableDeclarationKind,
     name: String,
     init: Option<Expression<'alloc>>,
     span: Span
@@ -302,7 +385,7 @@ pub fn create_variable_declaration<'alloc>(
     let mut declarations = OxcVec::with_capacity_in(1, allocator);
     declarations.push(create_variable_declarator(allocator, name, init, span));
     let decl = VariableDeclaration {
-        kind: VariableDeclarationKind::Let,
+        kind,
         declarations,
         modifiers: Modifiers::empty(),
         span,

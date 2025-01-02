@@ -350,8 +350,8 @@ fn transform_finally_wrap<'a>(
 
     let mut new_body = vec![
         // `var thrown = false; var thrown_value = undefined;`
-        create_variable_declaration(allocator, action_var.clone(), Some(create_number_literal(allocator, 0.0, "0", try_span)), try_span),
-        create_variable_declaration(allocator, use_var.clone(), None, try_span),
+        create_variable_declaration_let(allocator, action_var.clone(), Some(create_number_literal(allocator, 0.0, "0", try_span)), try_span),
+        create_variable_declaration_let(allocator, use_var.clone(), None, try_span),
 
         // The labeled block representing the `new_label: finally { ... }`
         Statement::LabeledStatement(OxcBox(allocator.alloc(LabeledStatement {
@@ -381,6 +381,7 @@ fn transform_finally_wrap<'a>(
             try_span,
         ),
 
+        // TODO: If there's no explicit `return` then we don't need this `if` statement...
         // `if (action_var === 2) { return use_var; }`
         create_if_statement(allocator,
             create_binary_expression(allocator, BinaryOperator::StrictEquality,
@@ -394,11 +395,16 @@ fn transform_finally_wrap<'a>(
         ),
     ];
 
+    // Add an `if` statement for each unique break label target for breaks inside the try targeting labels outside the try
     for i in 0..target_labels.len() {
         new_body.push(create_if_statement(allocator,
             create_binary_expression(allocator, BinaryOperator::StrictEquality,
                 create_identifier_expression(allocator, action_var.clone(), finalizer_span),
-                create_number_literal(allocator, BREAK_ACTION_ID_OFFSET + (i as f64), allocator.alloc(Atom::from((BREAK_ACTION_ID_OFFSET+(i as f64)).to_string())).as_str(), finalizer_span),
+                create_number_literal(
+                    allocator, BREAK_ACTION_ID_OFFSET + (i as f64),
+                    allocator.alloc(Atom::from((BREAK_ACTION_ID_OFFSET+(i as f64)).to_string())).as_str(),
+                    finalizer_span
+                ),
                 finalizer_span
             ),
             create_break_statement(allocator,
