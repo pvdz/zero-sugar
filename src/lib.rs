@@ -3,6 +3,8 @@ pub mod walker;
 pub mod mapper;
 pub mod get_stmt_span;
 pub mod mapper_state;
+use transforms::stmt_for_in::transform_for_in_statement;
+use transforms::stmt_for_of::transform_for_of_statement;
 use wasm_bindgen::prelude::*;
 
 use oxc_allocator::Allocator;
@@ -84,6 +86,12 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
         }
         Statement::ForStatement(for_stmt) => {
             transform_for_n_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+        }
+        Statement::ForInStatement(for_stmt) => {
+            transform_for_in_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+        }
+        Statement::ForOfStatement(for_stmt) => {
+            transform_for_of_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
         Statement::TryStatement(try_stmt) => {
             transform_finally_statement(try_stmt.unbox(), allocator, &mut state.borrow_mut())

@@ -42,19 +42,19 @@ fn test_basic_try_finally() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		a();
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		b();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -72,23 +72,23 @@ fn test_try_finally_with_return() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		{
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = a();
-    			break $zeroConfig_2;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = a();
+    			break $zeroSugar2;
     		}
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		b();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -106,23 +106,23 @@ fn test_try_finally_with_return_in_both() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		{
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = a();
-    			break $zeroConfig_2;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = a();
+    			break $zeroSugar2;
     		}
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		return b();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -140,19 +140,19 @@ fn test_try_finally_with_throw() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		throw new Error();
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -172,22 +172,22 @@ fn test_try_catch_finally() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		a();
     	}catch(err){
     		try{
     			handleError(err);
-    		}catch($zeroConfig_3){
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = $zeroConfig_3;
+    		}catch($zeroSugar3){
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = $zeroSugar3;
     		}	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -209,37 +209,37 @@ fn test_nested_try_finally() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_3 = 0;
-    	let $zeroConfig_4;
-    	$zeroConfig_5:	try{
+    	let $zeroSugar3 = 0;
+    	let $zeroSugar4;
+    	$zeroSugar5:	try{
     		{
-    			let $zeroConfig_0 = 0;
-    			let $zeroConfig_1;
-    			$zeroConfig_2:			try{
+    			let $zeroSugar0 = 0;
+    			let $zeroSugar1;
+    			$zeroSugar2:			try{
     				a();
     			}catch(e){
-    				$zeroConfig_0 = 2;
-    				$zeroConfig_1 = e;
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = e;
     			}			{
     				b();
     			}
-    			if ($zeroConfig_0 === 1) 			throw $zeroConfig_1;
+    			if ($zeroSugar0 === 1) 			throw $zeroSugar1;
 
-    			if ($zeroConfig_0 === 2) {
-    				$zeroConfig_3 = 2;
-    				$zeroConfig_4 = $zeroConfig_1;
-    				break $zeroConfig_5;
+    			if ($zeroSugar0 === 2) {
+    				$zeroSugar3 = 2;
+    				$zeroSugar4 = $zeroSugar1;
+    				break $zeroSugar5;
     			}
     		}
     	}catch(e){
-    		$zeroConfig_3 = 2;
-    		$zeroConfig_4 = e;
+    		$zeroSugar3 = 2;
+    		$zeroSugar4 = e;
     	}	{
     		c();
     	}
-    	if ($zeroConfig_3 === 1) 	throw $zeroConfig_4;
+    	if ($zeroSugar3 === 1) 	throw $zeroSugar4;
 
-    	if ($zeroConfig_3 === 2) 	return $zeroConfig_4;
+    	if ($zeroSugar3 === 2) 	return $zeroSugar4;
 
     }
     "#);
@@ -257,23 +257,23 @@ fn test_try_finally_with_return_value() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		{
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = getValue();
-    			break $zeroConfig_2;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = getValue();
+    			break $zeroSugar2;
     		}
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -291,19 +291,19 @@ fn test_try_finally_without_catch() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		mayThrow();
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -325,25 +325,25 @@ fn test_try_finally_with_break() {
     assert_snapshot!(result, @r#"
     while(true){
     	{
-    		let $zeroConfig_0 = 0;
-    		let $zeroConfig_1;
-    		$zeroConfig_2:		try{
+    		let $zeroSugar0 = 0;
+    		let $zeroSugar1;
+    		$zeroSugar2:		try{
     			if (x) {
-    				$zeroConfig_0 = 3;
-    				break $zeroConfig_2;
+    				$zeroSugar0 = 3;
+    				break $zeroSugar2;
     			}
     			a();
     		}catch(e){
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = e;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = e;
     		}		{
     			cleanup();
     		}
-    		if ($zeroConfig_0 === 1) 		throw $zeroConfig_1;
+    		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
 
-    		if ($zeroConfig_0 === 2) 		return $zeroConfig_1;
+    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
 
-    		if ($zeroConfig_0 === 3) 		break;
+    		if ($zeroSugar0 === 3) 		break;
 
     	}
     }
@@ -369,48 +369,48 @@ fn test_try_finally_with_nested_return() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_3 = 0;
-    	let $zeroConfig_4;
-    	$zeroConfig_5:	try{
+    	let $zeroSugar3 = 0;
+    	let $zeroSugar4;
+    	$zeroSugar5:	try{
     		if (x) {
     			{
-    				let $zeroConfig_0 = 0;
-    				let $zeroConfig_1;
-    				$zeroConfig_2:				try{
+    				let $zeroSugar0 = 0;
+    				let $zeroSugar1;
+    				$zeroSugar2:				try{
     					{
-    						$zeroConfig_0 = 2;
-    						$zeroConfig_1 = inner();
-    						break $zeroConfig_2;
+    						$zeroSugar0 = 2;
+    						$zeroSugar1 = inner();
+    						break $zeroSugar2;
     					}
     				}catch(e){
-    					$zeroConfig_0 = 2;
-    					$zeroConfig_1 = e;
+    					$zeroSugar0 = 2;
+    					$zeroSugar1 = e;
     				}				{
     					cleanup1();
     				}
-    				if ($zeroConfig_0 === 1) 				throw $zeroConfig_1;
+    				if ($zeroSugar0 === 1) 				throw $zeroSugar1;
 
-    				if ($zeroConfig_0 === 2) {
-    					$zeroConfig_3 = 2;
-    					$zeroConfig_4 = $zeroConfig_1;
-    					break $zeroConfig_5;
+    				if ($zeroSugar0 === 2) {
+    					$zeroSugar3 = 2;
+    					$zeroSugar4 = $zeroSugar1;
+    					break $zeroSugar5;
     				}
     			}
     		}
     		{
-    			$zeroConfig_3 = 2;
-    			$zeroConfig_4 = outer();
-    			break $zeroConfig_5;
+    			$zeroSugar3 = 2;
+    			$zeroSugar4 = outer();
+    			break $zeroSugar5;
     		}
     	}catch(e){
-    		$zeroConfig_3 = 2;
-    		$zeroConfig_4 = e;
+    		$zeroSugar3 = 2;
+    		$zeroSugar4 = e;
     	}	{
     		cleanup2();
     	}
-    	if ($zeroConfig_3 === 1) 	throw $zeroConfig_4;
+    	if ($zeroSugar3 === 1) 	throw $zeroSugar4;
 
-    	if ($zeroConfig_3 === 2) 	return $zeroConfig_4;
+    	if ($zeroSugar3 === 2) 	return $zeroSugar4;
 
     }
     "#);
@@ -434,27 +434,27 @@ fn test_try_finally_with_labeled_break() {
     assert_snapshot!(result, @r#"
     outer:while(true){
     	{
-    		let $zeroConfig_0 = 0;
-    		let $zeroConfig_1;
-    		$zeroConfig_2:		try{
+    		let $zeroSugar0 = 0;
+    		let $zeroSugar1;
+    		$zeroSugar2:		try{
     			while(true)			{
     				if (x) {
-    					$zeroConfig_0 = 3;
-    					break $zeroConfig_2;
+    					$zeroSugar0 = 3;
+    					break $zeroSugar2;
     				}
     				a();
     			}
     		}catch(e){
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = e;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = e;
     		}		{
     			cleanup();
     		}
-    		if ($zeroConfig_0 === 1) 		throw $zeroConfig_1;
+    		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
 
-    		if ($zeroConfig_0 === 2) 		return $zeroConfig_1;
+    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
 
-    		if ($zeroConfig_0 === 3) 		break outer;
+    		if ($zeroSugar0 === 3) 		break outer;
 
     	}
     }
@@ -484,50 +484,50 @@ fn test_try_finally_with_nested_break_and_return() {
     assert_snapshot!(result, @r#"
     loop1:while(true){
     	{
-    		let $zeroConfig_3 = 0;
-    		let $zeroConfig_4;
-    		$zeroConfig_5:		try{
+    		let $zeroSugar3 = 0;
+    		let $zeroSugar4;
+    		$zeroSugar5:		try{
     			loop2:			while(true)			{
     				{
-    					let $zeroConfig_0 = 0;
-    					let $zeroConfig_1;
-    					$zeroConfig_2:					try{
+    					let $zeroSugar0 = 0;
+    					let $zeroSugar1;
+    					$zeroSugar2:					try{
     						if (x) {
-    							$zeroConfig_0 = 3;
-    							break $zeroConfig_2;
+    							$zeroSugar0 = 3;
+    							break $zeroSugar2;
     						}
     						if (y) {
-    							$zeroConfig_0 = 2;
-    							$zeroConfig_1 = value;
-    							break $zeroConfig_2;
+    							$zeroSugar0 = 2;
+    							$zeroSugar1 = value;
+    							break $zeroSugar2;
     						}
     						a();
     					}catch(e){
-    						$zeroConfig_0 = 2;
-    						$zeroConfig_1 = e;
+    						$zeroSugar0 = 2;
+    						$zeroSugar1 = e;
     					}					{
     						cleanup1();
     					}
-    					if ($zeroConfig_0 === 1) 					throw $zeroConfig_1;
+    					if ($zeroSugar0 === 1) 					throw $zeroSugar1;
 
-    					if ($zeroConfig_0 === 2) {
-    						$zeroConfig_3 = 2;
-    						$zeroConfig_4 = $zeroConfig_1;
-    						break $zeroConfig_5;
+    					if ($zeroSugar0 === 2) {
+    						$zeroSugar3 = 2;
+    						$zeroSugar4 = $zeroSugar1;
+    						break $zeroSugar5;
     					}
-    					if ($zeroConfig_0 === 3) 					break loop1;
+    					if ($zeroSugar0 === 3) 					break loop1;
 
     				}
     			}
     		}catch(e){
-    			$zeroConfig_3 = 2;
-    			$zeroConfig_4 = e;
+    			$zeroSugar3 = 2;
+    			$zeroSugar4 = e;
     		}		{
     			cleanup2();
     		}
-    		if ($zeroConfig_3 === 1) 		throw $zeroConfig_4;
+    		if ($zeroSugar3 === 1) 		throw $zeroSugar4;
 
-    		if ($zeroConfig_3 === 2) 		return $zeroConfig_4;
+    		if ($zeroSugar3 === 2) 		return $zeroSugar4;
 
     	}
     }
@@ -547,27 +547,27 @@ fn test_try_finally_with_multiple_returns() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		if (x) {
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = 'a';
-    			break $zeroConfig_2;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = 'a';
+    			break $zeroSugar2;
     		} else {
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = 'b';
-    			break $zeroConfig_2;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = 'b';
+    			break $zeroSugar2;
     		}
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -587,21 +587,21 @@ fn test_try_finally_with_internal_break() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		a:		{
     			break a;
     		}
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -619,24 +619,24 @@ fn test_try_finally_with_external_break() {
 
     assert_snapshot!(result, @r#"
     a:{
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		{
-    			$zeroConfig_0 = 3;
-    			break $zeroConfig_2;
+    			$zeroSugar0 = 3;
+    			break $zeroSugar2;
     		}
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
-    	if ($zeroConfig_0 === 3) 	break a;
+    	if ($zeroSugar0 === 3) 	break a;
 
     }
     "#);
@@ -660,37 +660,37 @@ fn test_try_finally_with_nested_returns_in_blocks() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = 0;
-    	let $zeroConfig_1;
-    	$zeroConfig_2:	try{
+    	let $zeroSugar0 = 0;
+    	let $zeroSugar1;
+    	$zeroSugar2:	try{
     		if (x) {
     			if (y) {
     				{
-    					$zeroConfig_0 = 2;
-    					$zeroConfig_1 = 'a';
-    					break $zeroConfig_2;
+    					$zeroSugar0 = 2;
+    					$zeroSugar1 = 'a';
+    					break $zeroSugar2;
     				}
     			}
     			{
-    				$zeroConfig_0 = 2;
-    				$zeroConfig_1 = 'b';
-    				break $zeroConfig_2;
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = 'b';
+    				break $zeroSugar2;
     			}
     		}
     		{
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = 'c';
-    			break $zeroConfig_2;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = 'c';
+    			break $zeroSugar2;
     		}
     	}catch(e){
-    		$zeroConfig_0 = 2;
-    		$zeroConfig_1 = e;
+    		$zeroSugar0 = 2;
+    		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
-    	if ($zeroConfig_0 === 1) 	throw $zeroConfig_1;
+    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
 
-    	if ($zeroConfig_0 === 2) 	return $zeroConfig_1;
+    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -716,34 +716,34 @@ fn test_try_finally_with_mixed_breaks_and_returns() {
     assert_snapshot!(result, @r#"
     outer:{
     	{
-    		let $zeroConfig_0 = 0;
-    		let $zeroConfig_1;
-    		$zeroConfig_2:		try{
+    		let $zeroSugar0 = 0;
+    		let $zeroSugar1;
+    		$zeroSugar2:		try{
     			inner:			{
     				if (x) 				break inner;
 
     				if (y) {
-    					$zeroConfig_0 = 3;
-    					break $zeroConfig_2;
+    					$zeroSugar0 = 3;
+    					break $zeroSugar2;
     				}
     				{
-    					$zeroConfig_0 = 2;
-    					$zeroConfig_1 = value;
-    					break $zeroConfig_2;
+    					$zeroSugar0 = 2;
+    					$zeroSugar1 = value;
+    					break $zeroSugar2;
     				}
     			}
     			moreCode();
     		}catch(e){
-    			$zeroConfig_0 = 2;
-    			$zeroConfig_1 = e;
+    			$zeroSugar0 = 2;
+    			$zeroSugar1 = e;
     		}		{
     			cleanup();
     		}
-    		if ($zeroConfig_0 === 1) 		throw $zeroConfig_1;
+    		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
 
-    		if ($zeroConfig_0 === 2) 		return $zeroConfig_1;
+    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
 
-    		if ($zeroConfig_0 === 3) 		break outer;
+    		if ($zeroSugar0 === 3) 		break outer;
 
     	}
     }

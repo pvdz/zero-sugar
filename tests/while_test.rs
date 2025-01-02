@@ -41,13 +41,13 @@ fn test_do_while_loop() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = true;
-    	while($zeroConfig_0)	{
+    	let $zeroSugar0 = true;
+    	while($zeroSugar0)	{
     		{
     			console.log(x);
     			x++;
     		}
-    		$zeroConfig_0 = x;
+    		$zeroSugar0 = x;
     	}
     }
     "#);
@@ -64,13 +64,13 @@ fn test_non_ident_test() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = true;
-    	while($zeroConfig_0)	{
+    	let $zeroSugar0 = true;
+    	while($zeroSugar0)	{
     		{
     			console.log(x);
     			x++;
     		}
-    		$zeroConfig_0 = 'infinite';
+    		$zeroSugar0 = 'infinite';
     	}
     }
     "#);
@@ -87,13 +87,13 @@ fn test_binexpr_test() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = true;
-    	while($zeroConfig_0)	{
+    	let $zeroSugar0 = true;
+    	while($zeroSugar0)	{
     		{
     			console.log(x);
     			x++;
     		}
-    		$zeroConfig_0 = 1 + 1;
+    		$zeroSugar0 = 1 + 1;
     	}
     }
     "#);
@@ -109,10 +109,10 @@ fn test_not_block_body() {
 
     assert_snapshot!(result, @r#"
     {
-    	let $zeroConfig_0 = true;
-    	while($zeroConfig_0)	{
+    	let $zeroSugar0 = true;
+    	while($zeroSugar0)	{
     		console.log(x);
-    		$zeroConfig_0 = x < 5;
+    		$zeroSugar0 = x < 5;
     	}
     }
     "#);

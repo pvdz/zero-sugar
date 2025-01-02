@@ -7,6 +7,6 @@ impl MapperState {
         let id = self.id_counter;
         self.id_counter += 1;
         // Legit variable name AND label name :D
-        format!("$zeroConfig_{}", id)
+        format!("$zeroSugar{}", id)
     }
 }
