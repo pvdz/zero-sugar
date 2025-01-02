@@ -15,6 +15,7 @@ use oxc_codegen::{Codegen, CodegenOptions};
 use crate::mapper::create_mapper;
 use crate::transforms::stmt_do_while::transform_do_while_statement_inner;
 use crate::transforms::stmt_for::transform_for_statement_inner;
+use crate::transforms::stmt_finally::transform_finally_statement_inner;
 
 #[wasm_bindgen(getter_with_clone)]
 pub struct TransformResult {
@@ -83,6 +84,9 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
         }
         Statement::ForStatement(for_stmt) => {
             transform_for_statement_inner(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+        }
+        Statement::TryStatement(try_stmt) => {
+            transform_finally_statement_inner(try_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
         other => (false, other),
     });
