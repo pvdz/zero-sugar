@@ -2,6 +2,7 @@ use oxc_ast::ast::*;
 use oxc_ast::ast::VariableDeclarationKind;
 use oxc_syntax::operator::*;
 use oxc_syntax::reference::*;
+use oxc_syntax::NumberBase;
 use std::cell::Cell;
 use oxc_span::Atom;
 use oxc_span::Span;
@@ -38,11 +39,51 @@ pub fn create_block_statement<'alloc>(
     span: Span
 ) -> Statement<'alloc> {
     Statement::BlockStatement(
-        OxcBox(allocator.alloc(BlockStatement {
-            body,
-            span,
-        }))
+        OxcBox(allocator.alloc(BlockStatement { body, span }))
     )
+}
+
+pub fn create_binary_expression<'alloc>(
+    allocator: &'alloc Allocator,
+    operator: BinaryOperator,
+    left: Expression<'alloc>,
+    right: Expression<'alloc>,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::BinaryExpression(OxcBox(allocator.alloc(BinaryExpression {
+        operator,
+        left,
+        right,
+        span,
+    })))
+}
+
+pub fn create_binding_identifier<'alloc>(
+    allocator: &'alloc Allocator,
+    name: String,
+    span: Span
+) -> BindingIdentifier {
+    BindingIdentifier {
+        name: Atom::from(name),
+        symbol_id: Cell::default(),
+        span,
+    }
+}
+
+pub fn create_binding_pattern<'alloc>(
+    allocator: &'alloc Allocator,
+    name: String,
+    span: Span
+) -> BindingPattern<'alloc> {
+    BindingPattern {
+        kind: BindingPatternKind::BindingIdentifier(OxcBox(allocator.alloc(BindingIdentifier {
+            name: Atom::from(name),
+            symbol_id: Cell::default(),
+            span,
+        }))),
+        type_annotation: None,
+        optional: false,
+    }
 }
 
 pub fn create_bool<'alloc>(
@@ -56,6 +97,30 @@ pub fn create_bool<'alloc>(
             span,
         }))
     )
+}
+
+pub fn create_break_statement<'alloc>(
+    allocator: &'alloc Allocator,
+    label: Option<LabelIdentifier>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::BreakStatement(OxcBox(allocator.alloc(BreakStatement {
+        label,
+        span,
+    })))
+}
+
+pub fn create_catch_clause<'alloc>(
+    allocator: &'alloc Allocator,
+    param: Option<BindingPattern<'alloc>>,
+    body: BlockStatement<'alloc>,
+    span: Span
+) -> CatchClause<'alloc> {
+    CatchClause {
+        param,
+        body: OxcBox(allocator.alloc(body)),
+        span,
+    }
 }
 
 pub fn create_expression_statement<'alloc>(
@@ -84,6 +149,109 @@ pub fn create_identifier_expression<'alloc>(
             reference_flag: ReferenceFlag::default(),
         }))
     )
+}
+
+pub fn create_if_statement<'alloc>(
+    allocator: &'alloc Allocator,
+    test: Expression<'alloc>,
+    consequent: Statement<'alloc>,
+    alternate: Option<Statement<'alloc>>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::IfStatement(OxcBox(allocator.alloc(IfStatement {
+        test,
+        consequent,
+        alternate,
+        span,
+    })))
+}
+
+pub fn create_labeled_statement<'alloc>(
+    allocator: &'alloc Allocator,
+    label: String,
+    body: Statement<'alloc>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::LabeledStatement(OxcBox(allocator.alloc(LabeledStatement {
+        label: LabelIdentifier { name: Atom::from(label), span },
+        body,
+        span,
+    })))
+}
+
+pub fn create_number_literal<'alloc>(
+    allocator: &'alloc Allocator,
+    value: f64,
+    value_str: &'alloc str,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::NumberLiteral(OxcBox(allocator.alloc(NumberLiteral {
+        value,
+        raw: value_str,
+        base: NumberBase::Decimal,
+        span,
+    })))
+}
+
+pub fn create_number_literal_str<'alloc>(
+    allocator: &'alloc Allocator,
+    value: f64,
+    value_str: &'alloc String,
+    span: Span
+) -> Expression<'alloc> {
+    create_number_literal(allocator, value, value_str.as_str(), span)
+}
+
+pub fn create_return_statement<'alloc>(
+    allocator: &'alloc Allocator,
+    argument: Option<Expression<'alloc>>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::ReturnStatement(OxcBox(allocator.alloc(ReturnStatement {
+        argument,
+        span,
+    })))
+}
+
+pub fn create_throw_statement<'alloc>(
+    allocator: &'alloc Allocator,
+    argument: Expression<'alloc>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::ThrowStatement(OxcBox(allocator.alloc(ThrowStatement {
+        argument,
+        span,
+    })))
+}
+
+pub fn create_try_statement<'alloc>(
+    allocator: &'alloc Allocator,
+    block: BlockStatement<'alloc>,
+    handler:  Option<OxcBox<'alloc, CatchClause<'alloc>>>,
+    finalizer: Option<OxcBox<'alloc, BlockStatement<'alloc>>>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::TryStatement(OxcBox(allocator.alloc(TryStatement {
+        block: OxcBox(allocator.alloc(block)),
+        handler,
+        finalizer,
+        span,
+    })))
+}
+
+pub fn create_try_statement_unboxed<'alloc>(
+    allocator: &'alloc Allocator,
+    block: BlockStatement<'alloc>,
+    handler:  Option<CatchClause<'alloc>>,
+    finalizer: Option<BlockStatement<'alloc>>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::TryStatement(OxcBox(allocator.alloc(TryStatement {
+        block: OxcBox(allocator.alloc(block)),
+        handler: handler.map(|h| OxcBox(allocator.alloc(h))),
+        finalizer: finalizer.map(|f| OxcBox(allocator.alloc(f))),
+        span,
+    })))
 }
 
 pub fn create_while_statement<'alloc>(
