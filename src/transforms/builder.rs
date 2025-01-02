@@ -80,7 +80,7 @@ pub fn create_binary_expression<'alloc>(
 }
 
 pub fn create_binding_identifier<'alloc>(
-    allocator: &'alloc Allocator,
+    _allocator: &'alloc Allocator,
     name: String,
     span: Span
 ) -> BindingIdentifier {
@@ -195,7 +195,7 @@ pub fn create_identifier_expression<'alloc>(
 }
 
 pub fn create_identifier_reference<'alloc>(
-    allocator: &'alloc Allocator,
+    _allocator: &'alloc Allocator,
     name: String,
     span: Span
 ) -> IdentifierReference {

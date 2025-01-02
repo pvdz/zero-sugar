@@ -670,7 +670,7 @@ fn transform_return_breaks_recursively_in_block<'a>(
     }))
 }
 
-fn abrupt_escape_analysis(stmt: &Statement) -> (bool, Vec<String>) {
+fn _abrupt_escape_analysis(stmt: &Statement) -> (bool, Vec<String>) {
     // We need to remember the list of break labels to compile after the finally.
     // Since we only target labels that are wrapping the try-statement and JS syntax
     // requires them to be unique; we can maintain a clean list of unique labels.

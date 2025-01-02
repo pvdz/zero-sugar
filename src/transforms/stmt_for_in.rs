@@ -1,5 +1,4 @@
 use oxc_allocator::Vec as OxcVec;
-use oxc_allocator::Box as OxcBox;
 use oxc_ast::ast::*;
 use oxc_allocator::Allocator;
 use oxc_syntax::operator::AssignmentOperator;
