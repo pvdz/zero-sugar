@@ -3,6 +3,8 @@ pub mod walker;
 pub mod mapper;
 pub mod get_stmt_span;
 pub mod mapper_state;
+
+use transforms::stmt_continue::apply_continue_transform_updates;
 use transforms::stmt_for_in::transform_for_in_statement;
 use transforms::stmt_for_of::transform_for_of_statement;
 use wasm_bindgen::prelude::*;
@@ -85,24 +87,32 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
     let mut mapper = create_mapper(allocator);
     let state = mapper.state.clone();
 
-    mapper.add_visitor_stmt(move |stmt, allocator, before: bool| match ( before, stmt ) {
-        (false, Statement::DoWhileStatement(do_while)) => {
-            transform_do_while_statement(do_while.unbox(), allocator, &mut state.borrow_mut())
+    mapper.add_visitor_stmt(move |stmt, allocator, before: bool| {
+        // This part purely deals with wrapping loop bodies in a labeled statement for the sake of eliminating continue statements.
+        let stmt = apply_continue_transform_updates(stmt, before, allocator, &mut state.borrow_mut());
+
+        match ( before, stmt ) {
+            (false, Statement::DoWhileStatement(do_while)) => {
+                transform_do_while_statement(do_while.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (false, Statement::ForStatement(for_stmt)) => {
+                transform_for_n_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (false, Statement::ForInStatement(for_stmt)) => {
+                transform_for_in_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (false, Statement::ForOfStatement(for_stmt)) => {
+                transform_for_of_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (false, Statement::TryStatement(try_stmt)) => {
+                transform_finally_statement(try_stmt.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (false, Statement::ContinueStatement(continue_stmt)) => {
+                transform_continue_statement(continue_stmt.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (false, other) => (false, other),
+            (true, stmt) => (false, stmt),
         }
-        (false, Statement::ForStatement(for_stmt)) => {
-            transform_for_n_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
-        }
-        (false, Statement::ForInStatement(for_stmt)) => {
-            transform_for_in_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
-        }
-        (false, Statement::ForOfStatement(for_stmt)) => {
-            transform_for_of_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
-        }
-        (false, Statement::TryStatement(try_stmt)) => {
-            transform_finally_statement(try_stmt.unbox(), allocator, &mut state.borrow_mut())
-        }
-        (false, other) => (false, other),
-        (true, stmt) => (false, stmt),
     });
 
     let transformed = mapper.map(parsed.program);

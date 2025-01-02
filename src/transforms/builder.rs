@@ -222,6 +222,19 @@ pub fn create_if_statement<'alloc>(
     })))
 }
 
+pub fn create_labeled_stmt<'alloc>(
+    allocator: &'alloc Allocator,
+    label: String,
+    body: Statement<'alloc>,
+    span: Span
+) -> Statement<'alloc> {
+    Statement::LabeledStatement(OxcBox(allocator.alloc(LabeledStatement {
+        label: LabelIdentifier { name: Atom::from(label), span },
+        body,
+        span,
+    })))
+}
+
 pub fn create_labeled_statement<'alloc>(
     allocator: &'alloc Allocator,
     label: String,
