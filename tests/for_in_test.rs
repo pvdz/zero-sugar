@@ -15,6 +15,10 @@ fn parse_and_map(source: &str) -> String {
     let parser = Parser::new(&allocator, source, source_type);
     let parsed = parser.parse();
 
+    if !parsed.errors.is_empty() {
+        panic!("Input code could not be parsed: {:?}", parsed.errors);
+    }
+
     let mut mapper = create_mapper(&allocator);
     let state = mapper.state.clone();
 
@@ -22,7 +26,9 @@ fn parse_and_map(source: &str) -> String {
         Statement::ForInStatement(for_stmt) => {
             transform_for_in_statement(for_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        other => (false, other),
+        other => {
+            (false, other)
+        }
     });
 
     let transformed = mapper.map(parsed.program);
@@ -436,7 +442,34 @@ fn test_for_in_with_return() {
 }
 
 #[test]
-fn test_for_in_with_complex_left() {
+fn test_for_in_with_static_member_left() {
+    let result = parse_and_map(r#"
+        for (obj.key in source) {
+            console.log(obj.key);
+        }
+    "#);
+
+    assert_snapshot!(result, @r#"
+    {
+    	const $zeroSugar1 = $forIn(source);
+    	let $zeroSugar2;
+    	while($zeroSugar2 = $zeroSugar1.next())	{
+    		if ($zeroSugar2.done === true) 		break;
+
+    		$zeroSugar0 = $zeroSugar2.value;
+    		{
+    			obj.key = $zeroSugar0;
+    			{
+    				console.log(obj.key);
+    			}
+    		}
+    	}
+    }
+    "#);
+}
+
+#[test]
+fn test_for_in_with_computed_member_left() {
     let result = parse_and_map(r#"
         for (obj[key] in source) {
             console.log(obj[key]);
@@ -444,13 +477,59 @@ fn test_for_in_with_complex_left() {
     "#);
 
     assert_snapshot!(result, @r#"
-    while($zeroConfig_1 = $zeroConfig_0()){
-    	if ($zeroConfig_1.done === true) 	break;
+    {
+    	const $zeroSugar1 = $forIn(source);
+    	let $zeroSugar2;
+    	while($zeroSugar2 = $zeroSugar1.next())	{
+    		if ($zeroSugar2.done === true) 		break;
 
-    	obj[key] = $zeroConfig_1.value;
-    	{
-    		console.log(obj[key]);
+    		$zeroSugar0 = $zeroSugar2.value;
+    		{
+    			obj[key] = $zeroSugar0;
+    			{
+    				console.log(obj[key]);
+    			}
+    		}
     	}
     }
     "#);
+}
+
+#[test]
+fn test_for_in_with_private_field_member_left() {
+	// Note: private prop member expressions must be wrapped in a class defining the private prop.
+    let result = parse_and_map(r#"
+        class C {
+			#x;
+			constructor(x) {
+				for (this.#x in source) {
+					console.log(this.#x);
+				}
+			}
+		}
+    "#);
+
+    assert_snapshot!(result, @r##"
+    class C {
+    	#x;
+
+    	constructor(x){
+    		{
+    			const $zeroSugar1 = $forIn(source);
+    			let $zeroSugar2;
+    			while($zeroSugar2 = $zeroSugar1.next())			{
+    				if ($zeroSugar2.done === true) 				break;
+
+    				$zeroSugar0 = $zeroSugar2.value;
+    				{
+    					this.#x = $zeroSugar0;
+    					{
+    						console.log(this.#x);
+    					}
+    				}
+    			}
+    		}
+    	}
+    }
+    "##);
 }

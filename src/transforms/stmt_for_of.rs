@@ -22,6 +22,7 @@ use super::builder::create_variable_declaration_const;
 use super::builder::create_variable_declaration_kind;
 use super::builder::create_variable_declaration_let;
 use super::builder::create_while_statement;
+use super::for_header::transform_for_header;
 
 pub fn transform_for_of_statement<'a>(
     for_stmt: ForOfStatement<'a>,
@@ -65,6 +66,23 @@ pub fn transform_for_of_statement<'a>(
         todo!("`await` in for-of is not supported");
     }
 
+    // Transform the header if needed
+    let (new_left, pattern_stmt) = transform_for_header(left, allocator, state, span);
+
+    // Create the new body with pattern assignment if needed
+    let new_body = if let Some(pattern_stmt) = pattern_stmt {
+        create_block_statement(
+            allocator,
+            OxcVec::from_iter_in([
+                pattern_stmt,
+                body
+            ], allocator),
+            span
+        )
+    } else {
+        body
+    };
+
     let iterator_var = state.next_ident_name();
     let next_var = state.next_ident_name();
 
@@ -73,7 +91,7 @@ pub fn transform_for_of_statement<'a>(
 
     // Create the `$tmp = $next.value` assignment. There are a few cases depending on the lhs in the for-of header.
     // (Wow this is annoying in Rust...)
-    let next_value_stmt = match left {
+    let next_value_stmt = match new_left {
         ForStatementLeft::VariableDeclaration(vd) => {
             // Note: this decl may only have one declarator (syntactic restriction)
             let VariableDeclaration { declarations, span: decl_span, kind, modifiers: _modifiers } = vd.unbox();
@@ -116,9 +134,25 @@ pub fn transform_for_of_statement<'a>(
                         span
                     )
                 },
-                _ => {
-                    // We assume this already happened: `for (a.x of b) x` -> `for (let $tmp of b) { a.x = $tmp; { x } }`
-                    panic!("SimpleAssignmentTarget in for-of header should have been transformed to a plain `for (a of c) x`");
+                SimpleAssignmentTarget::MemberAssignmentTarget(_me) => {
+                    // ie: `for (a.x of b) x`
+                    panic!("MemberAssignmentTarget in for-of header should have been transformed out");
+                },
+                SimpleAssignmentTarget::TSAsExpression(_expr) => {
+                    // ie: `for (a[x] of b) x`
+                    panic!("TSAsExpression in for-of header should have been transformed out");
+                },
+                SimpleAssignmentTarget::TSSatisfiesExpression(_expr) => {
+                    // ie: `for (a satisfies b) x`
+                    panic!("TSSatisfiesExpression in for-of header should have been transformed out");
+                },
+                SimpleAssignmentTarget::TSNonNullExpression(_expr) => {
+                    // ie: `for (a of b) x`
+                    panic!("TSNonNullExpression in for-of header should have been transformed out");
+                },
+                SimpleAssignmentTarget::TSTypeAssertion(_expr) => {
+                    // ie: `for (a of b) x`
+                    panic!("TSTypeAssertion in for-of header should have been transformed out");
                 },
             }
         },
@@ -166,7 +200,7 @@ pub fn transform_for_of_statement<'a>(
             // `let x = $next.value;` (where `let x` was some lhs like `for (let x of y) { ... }`)
             next_value_stmt,
             // <body>
-            body,
+            new_body,
         ], allocator), span),
         span,
     );

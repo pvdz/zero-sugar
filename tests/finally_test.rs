@@ -15,6 +15,10 @@ fn parse_and_map(source: &str) -> String {
     let parser = Parser::new(&allocator, source, source_type);
     let parsed = parser.parse();
 
+    if !parsed.errors.is_empty() {
+        panic!("Input code could not be parsed: {:?}", parsed.errors);
+    }
+
     let mut mapper = create_mapper(&allocator);
     let state = mapper.state.clone();
 
@@ -63,33 +67,37 @@ fn test_basic_try_finally() {
 #[test]
 fn test_try_finally_with_return() {
     let result = parse_and_map(r#"
-        try {
-            return a();
-        } finally {
-            b();
+        function f() {
+            try {
+                return a();
+            } finally {
+                b();
+            }
         }
     "#);
 
     assert_snapshot!(result, @r#"
-    {
-    	let $zeroSugar0 = 0;
-    	let $zeroSugar1;
-    	$zeroSugar2:	try{
-    		{
+    function f() {
+    	{
+    		let $zeroSugar0 = 0;
+    		let $zeroSugar1;
+    		$zeroSugar2:		try{
+    			{
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = a();
+    				break $zeroSugar2;
+    			}
+    		}catch(e){
     			$zeroSugar0 = 2;
-    			$zeroSugar1 = a();
-    			break $zeroSugar2;
+    			$zeroSugar1 = e;
+    		}		{
+    			b();
     		}
-    	}catch(e){
-    		$zeroSugar0 = 2;
-    		$zeroSugar1 = e;
-    	}	{
-    		b();
+    		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
+
+    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
+
     	}
-    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
-
     }
     "#);
 }
@@ -97,33 +105,37 @@ fn test_try_finally_with_return() {
 #[test]
 fn test_try_finally_with_return_in_both() {
     let result = parse_and_map(r#"
-        try {
-            return a();
-        } finally {
-            return b();
+        function f() {
+            try {
+                return a();
+            } finally {
+                return b();
+            }
         }
     "#);
 
     assert_snapshot!(result, @r#"
-    {
-    	let $zeroSugar0 = 0;
-    	let $zeroSugar1;
-    	$zeroSugar2:	try{
-    		{
+    function f() {
+    	{
+    		let $zeroSugar0 = 0;
+    		let $zeroSugar1;
+    		$zeroSugar2:		try{
+    			{
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = a();
+    				break $zeroSugar2;
+    			}
+    		}catch(e){
     			$zeroSugar0 = 2;
-    			$zeroSugar1 = a();
-    			break $zeroSugar2;
+    			$zeroSugar1 = e;
+    		}		{
+    			return b();
     		}
-    	}catch(e){
-    		$zeroSugar0 = 2;
-    		$zeroSugar1 = e;
-    	}	{
-    		return b();
+    		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
+
+    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
+
     	}
-    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
-
     }
     "#);
 }
@@ -248,33 +260,37 @@ fn test_nested_try_finally() {
 #[test]
 fn test_try_finally_with_return_value() {
     let result = parse_and_map(r#"
-        try {
-            return getValue();
-        } finally {
-            cleanup();
+        function f() {
+            try {
+                return getValue();
+            } finally {
+                cleanup();
+            }
         }
     "#);
 
     assert_snapshot!(result, @r#"
-    {
-    	let $zeroSugar0 = 0;
-    	let $zeroSugar1;
-    	$zeroSugar2:	try{
-    		{
+    function f() {
+    	{
+    		let $zeroSugar0 = 0;
+    		let $zeroSugar1;
+    		$zeroSugar2:		try{
+    			{
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = getValue();
+    				break $zeroSugar2;
+    			}
+    		}catch(e){
     			$zeroSugar0 = 2;
-    			$zeroSugar1 = getValue();
-    			break $zeroSugar2;
+    			$zeroSugar1 = e;
+    		}		{
+    			cleanup();
     		}
-    	}catch(e){
-    		$zeroSugar0 = 2;
-    		$zeroSugar1 = e;
-    	}	{
-    		cleanup();
+    		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
+
+    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
+
     	}
-    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
-
     }
     "#);
 }
@@ -353,65 +369,69 @@ fn test_try_finally_with_break() {
 #[test]
 fn test_try_finally_with_nested_return() {
     let result = parse_and_map(r#"
-        try {
-            if (x) {
-                try {
-                    return inner();
-                } finally {
-                    cleanup1();
+        function f() {
+            try {
+                if (x) {
+                    try {
+                        return inner();
+                    } finally {
+                        cleanup1();
+                    }
                 }
+                return outer();
+            } finally {
+                cleanup2();
             }
-            return outer();
-        } finally {
-            cleanup2();
         }
     "#);
 
     assert_snapshot!(result, @r#"
-    {
-    	let $zeroSugar3 = 0;
-    	let $zeroSugar4;
-    	$zeroSugar5:	try{
-    		if (x) {
-    			{
-    				let $zeroSugar0 = 0;
-    				let $zeroSugar1;
-    				$zeroSugar2:				try{
-    					{
+    function f() {
+    	{
+    		let $zeroSugar3 = 0;
+    		let $zeroSugar4;
+    		$zeroSugar5:		try{
+    			if (x) {
+    				{
+    					let $zeroSugar0 = 0;
+    					let $zeroSugar1;
+    					$zeroSugar2:					try{
+    						{
+    							$zeroSugar0 = 2;
+    							$zeroSugar1 = inner();
+    							break $zeroSugar2;
+    						}
+    					}catch(e){
     						$zeroSugar0 = 2;
-    						$zeroSugar1 = inner();
-    						break $zeroSugar2;
+    						$zeroSugar1 = e;
+    					}					{
+    						cleanup1();
     					}
-    				}catch(e){
-    					$zeroSugar0 = 2;
-    					$zeroSugar1 = e;
-    				}				{
-    					cleanup1();
-    				}
-    				if ($zeroSugar0 === 1) 				throw $zeroSugar1;
+    					if ($zeroSugar0 === 1) 					throw $zeroSugar1;
 
-    				if ($zeroSugar0 === 2) {
-    					$zeroSugar3 = 2;
-    					$zeroSugar4 = $zeroSugar1;
-    					break $zeroSugar5;
+    					if ($zeroSugar0 === 2) {
+    						$zeroSugar3 = 2;
+    						$zeroSugar4 = $zeroSugar1;
+    						break $zeroSugar5;
+    					}
     				}
     			}
-    		}
-    		{
+    			{
+    				$zeroSugar3 = 2;
+    				$zeroSugar4 = outer();
+    				break $zeroSugar5;
+    			}
+    		}catch(e){
     			$zeroSugar3 = 2;
-    			$zeroSugar4 = outer();
-    			break $zeroSugar5;
+    			$zeroSugar4 = e;
+    		}		{
+    			cleanup2();
     		}
-    	}catch(e){
-    		$zeroSugar3 = 2;
-    		$zeroSugar4 = e;
-    	}	{
-    		cleanup2();
+    		if ($zeroSugar3 === 1) 		throw $zeroSugar4;
+
+    		if ($zeroSugar3 === 2) 		return $zeroSugar4;
+
     	}
-    	if ($zeroSugar3 === 1) 	throw $zeroSugar4;
-
-    	if ($zeroSugar3 === 2) 	return $zeroSugar4;
-
     }
     "#);
 }
@@ -464,71 +484,75 @@ fn test_try_finally_with_labeled_break() {
 #[test]
 fn test_try_finally_with_nested_break_and_return() {
     let result = parse_and_map(r#"
-        loop1: while (true) {
-            try {
-                loop2: while (true) {
-                    try {
-                        if (x) break loop1;
-                        if (y) return value;
-                        a();
-                    } finally {
-                        cleanup1();
+        function f() {
+            loop1: while (true) {
+                try {
+                    loop2: while (true) {
+                        try {
+                            if (x) break loop1;
+                            if (y) return value;
+                            a();
+                        } finally {
+                            cleanup1();
+                        }
                     }
+                } finally {
+                    cleanup2();
                 }
-            } finally {
-                cleanup2();
             }
         }
     "#);
 
     assert_snapshot!(result, @r#"
-    loop1:while(true){
-    	{
-    		let $zeroSugar3 = 0;
-    		let $zeroSugar4;
-    		$zeroSugar5:		try{
-    			loop2:			while(true)			{
-    				{
-    					let $zeroSugar0 = 0;
-    					let $zeroSugar1;
-    					$zeroSugar2:					try{
-    						if (x) {
-    							$zeroSugar0 = 3;
-    							break $zeroSugar2;
-    						}
-    						if (y) {
+    function f() {
+    	loop1:	while(true)	{
+    		{
+    			let $zeroSugar3 = 0;
+    			let $zeroSugar4;
+    			$zeroSugar5:			try{
+    				loop2:				while(true)				{
+    					{
+    						let $zeroSugar0 = 0;
+    						let $zeroSugar1;
+    						$zeroSugar2:						try{
+    							if (x) {
+    								$zeroSugar0 = 3;
+    								break $zeroSugar2;
+    							}
+    							if (y) {
+    								$zeroSugar0 = 2;
+    								$zeroSugar1 = value;
+    								break $zeroSugar2;
+    							}
+    							a();
+    						}catch(e){
     							$zeroSugar0 = 2;
-    							$zeroSugar1 = value;
-    							break $zeroSugar2;
+    							$zeroSugar1 = e;
+    						}						{
+    							cleanup1();
     						}
-    						a();
-    					}catch(e){
-    						$zeroSugar0 = 2;
-    						$zeroSugar1 = e;
-    					}					{
-    						cleanup1();
-    					}
-    					if ($zeroSugar0 === 1) 					throw $zeroSugar1;
+    						if ($zeroSugar0 === 1) 						throw $zeroSugar1;
 
-    					if ($zeroSugar0 === 2) {
-    						$zeroSugar3 = 2;
-    						$zeroSugar4 = $zeroSugar1;
-    						break $zeroSugar5;
-    					}
-    					if ($zeroSugar0 === 3) 					break loop1;
+    						if ($zeroSugar0 === 2) {
+    							$zeroSugar3 = 2;
+    							$zeroSugar4 = $zeroSugar1;
+    							break $zeroSugar5;
+    						}
+    						if ($zeroSugar0 === 3) 						break loop1;
 
+    					}
     				}
+    			}catch(e){
+    				$zeroSugar3 = 2;
+    				$zeroSugar4 = e;
+    			}			{
+    				cleanup2();
     			}
-    		}catch(e){
-    			$zeroSugar3 = 2;
-    			$zeroSugar4 = e;
-    		}		{
-    			cleanup2();
+    			if ($zeroSugar3 === 1) 			throw $zeroSugar4;
+
+    			if ($zeroSugar3 === 2) 			return $zeroSugar4;
+
     		}
-    		if ($zeroSugar3 === 1) 		throw $zeroSugar4;
-
-    		if ($zeroSugar3 === 2) 		return $zeroSugar4;
-
     	}
     }
     "#);
@@ -537,38 +561,42 @@ fn test_try_finally_with_nested_break_and_return() {
 #[test]
 fn test_try_finally_with_multiple_returns() {
     let result = parse_and_map(r#"
-        try {
-            if (x) return 'a';
-            else return 'b';
-        } finally {
-            cleanup();
+        function f() {
+            try {
+                if (x) return 'a';
+                else return 'b';
+            } finally {
+                cleanup();
+            }
         }
     "#);
 
     assert_snapshot!(result, @r#"
-    {
-    	let $zeroSugar0 = 0;
-    	let $zeroSugar1;
-    	$zeroSugar2:	try{
-    		if (x) {
+    function f() {
+    	{
+    		let $zeroSugar0 = 0;
+    		let $zeroSugar1;
+    		$zeroSugar2:		try{
+    			if (x) {
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = 'a';
+    				break $zeroSugar2;
+    			} else {
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = 'b';
+    				break $zeroSugar2;
+    			}
+    		}catch(e){
     			$zeroSugar0 = 2;
-    			$zeroSugar1 = 'a';
-    			break $zeroSugar2;
-    		} else {
-    			$zeroSugar0 = 2;
-    			$zeroSugar1 = 'b';
-    			break $zeroSugar2;
+    			$zeroSugar1 = e;
+    		}		{
+    			cleanup();
     		}
-    	}catch(e){
-    		$zeroSugar0 = 2;
-    		$zeroSugar1 = e;
-    	}	{
-    		cleanup();
+    		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
+
+    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
+
     	}
-    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
-
     }
     "#);
 }
@@ -645,68 +673,15 @@ fn test_try_finally_with_external_break() {
 #[test]
 fn test_try_finally_with_nested_returns_in_blocks() {
     let result = parse_and_map(r#"
-        try {
-            if (x) {
-                if (y) {
-                    return 'a';
-                }
-                return 'b';
-            }
-            return 'c';
-        } finally {
-            cleanup();
-        }
-    "#);
-
-    assert_snapshot!(result, @r#"
-    {
-    	let $zeroSugar0 = 0;
-    	let $zeroSugar1;
-    	$zeroSugar2:	try{
-    		if (x) {
-    			if (y) {
-    				{
-    					$zeroSugar0 = 2;
-    					$zeroSugar1 = 'a';
-    					break $zeroSugar2;
-    				}
-    			}
-    			{
-    				$zeroSugar0 = 2;
-    				$zeroSugar1 = 'b';
-    				break $zeroSugar2;
-    			}
-    		}
-    		{
-    			$zeroSugar0 = 2;
-    			$zeroSugar1 = 'c';
-    			break $zeroSugar2;
-    		}
-    	}catch(e){
-    		$zeroSugar0 = 2;
-    		$zeroSugar1 = e;
-    	}	{
-    		cleanup();
-    	}
-    	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
-
-    }
-    "#);
-}
-
-#[test]
-fn test_try_finally_with_mixed_breaks_and_returns() {
-    let result = parse_and_map(r#"
-        outer: {
+        function f() {
             try {
-                inner: {
-                    if (x) break inner;
-                    if (y) break outer;
-                    return value;
+                if (x) {
+                    if (y) {
+                        return 'a';
+                    }
+                    return 'b';
                 }
-                moreCode();
+                return 'c';
             } finally {
                 cleanup();
             }
@@ -714,25 +689,30 @@ fn test_try_finally_with_mixed_breaks_and_returns() {
     "#);
 
     assert_snapshot!(result, @r#"
-    outer:{
+    function f() {
     	{
     		let $zeroSugar0 = 0;
     		let $zeroSugar1;
     		$zeroSugar2:		try{
-    			inner:			{
-    				if (x) 				break inner;
-
+    			if (x) {
     				if (y) {
-    					$zeroSugar0 = 3;
-    					break $zeroSugar2;
+    					{
+    						$zeroSugar0 = 2;
+    						$zeroSugar1 = 'a';
+    						break $zeroSugar2;
+    					}
     				}
     				{
     					$zeroSugar0 = 2;
-    					$zeroSugar1 = value;
+    					$zeroSugar1 = 'b';
     					break $zeroSugar2;
     				}
     			}
-    			moreCode();
+    			{
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = 'c';
+    				break $zeroSugar2;
+    			}
     		}catch(e){
     			$zeroSugar0 = 2;
     			$zeroSugar1 = e;
@@ -743,8 +723,64 @@ fn test_try_finally_with_mixed_breaks_and_returns() {
 
     		if ($zeroSugar0 === 2) 		return $zeroSugar1;
 
-    		if ($zeroSugar0 === 3) 		break outer;
+    	}
+    }
+    "#);
+}
 
+#[test]
+fn test_try_finally_with_mixed_breaks_and_returns() {
+    let result = parse_and_map(r#"
+        function f() {
+            outer: {
+                try {
+                    inner: {
+                        if (x) break inner;
+                        if (y) break outer;
+                        return value;
+                    }
+                    moreCode();
+                } finally {
+                    cleanup();
+                }
+            }
+        }
+    "#);
+
+    assert_snapshot!(result, @r#"
+    function f() {
+    	outer:	{
+    		{
+    			let $zeroSugar0 = 0;
+    			let $zeroSugar1;
+    			$zeroSugar2:			try{
+    				inner:				{
+    					if (x) 					break inner;
+
+    					if (y) {
+    						$zeroSugar0 = 3;
+    						break $zeroSugar2;
+    					}
+    					{
+    						$zeroSugar0 = 2;
+    						$zeroSugar1 = value;
+    						break $zeroSugar2;
+    					}
+    				}
+    				moreCode();
+    			}catch(e){
+    				$zeroSugar0 = 2;
+    				$zeroSugar1 = e;
+    			}			{
+    				cleanup();
+    			}
+    			if ($zeroSugar0 === 1) 			throw $zeroSugar1;
+
+    			if ($zeroSugar0 === 2) 			return $zeroSugar1;
+
+    			if ($zeroSugar0 === 3) 			break outer;
+
+    		}
     	}
     }
     "#);

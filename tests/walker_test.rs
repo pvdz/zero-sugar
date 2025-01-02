@@ -14,6 +14,10 @@ fn parse_and_walk_inner(allocator: &Allocator, source: &str) -> String {
     let parser = Parser::new(allocator, source, source_type);
     let parsed = parser.parse();
 
+    if !parsed.errors.is_empty() {
+        panic!("Input code could not be parsed: {:?}", parsed.errors);
+    }
+
     let mut walker = Walker::new();
     let visit_log = Arc::new(Mutex::new(Vec::<String>::new()));
 

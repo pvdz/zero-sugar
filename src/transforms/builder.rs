@@ -39,6 +39,21 @@ pub fn create_assignment_expression_name<'alloc>(
     )
 }
 
+pub fn create_assignment_expression_member<'alloc>(
+    allocator: &'alloc Allocator,
+    operator: AssignmentOperator,
+    left: MemberExpression<'alloc>,
+    right: Expression<'alloc>,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::AssignmentExpression(OxcBox(allocator.alloc(AssignmentExpression {
+        operator,
+        left: AssignmentTarget::SimpleAssignmentTarget(SimpleAssignmentTarget::MemberAssignmentTarget(OxcBox(allocator.alloc(left)))),
+        right,
+        span
+    })))
+}
+
 pub fn create_block_statement<'alloc>(
     allocator: &'alloc Allocator,
     body: OxcVec<'alloc, Statement<'alloc>>,
@@ -232,6 +247,15 @@ pub fn create_member_expression<'alloc>(
         optional: false,
         span,
     }))))
+}
+
+pub fn create_member_expression_computed<'alloc>(
+    allocator: &'alloc Allocator,
+    object: Expression<'alloc>,
+    expression: Expression<'alloc>,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::MemberExpression(OxcBox(allocator.alloc(MemberExpression::ComputedMemberExpression(ComputedMemberExpression { object, expression, optional: false, span }))))
 }
 
 pub fn create_number_literal<'alloc>(

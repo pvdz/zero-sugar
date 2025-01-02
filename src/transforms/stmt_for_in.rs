@@ -22,6 +22,7 @@ use super::builder::create_variable_declaration_const;
 use super::builder::create_variable_declaration_kind;
 use super::builder::create_variable_declaration_let;
 use super::builder::create_while_statement;
+use super::for_header::transform_for_header;
 
 pub fn transform_for_in_statement<'a>(
     for_stmt: ForInStatement<'a>,
@@ -64,6 +65,23 @@ pub fn transform_for_in_statement<'a>(
 
     let ForInStatement { left, right, body, span } = for_stmt;
 
+    // Transform the header if needed
+    let (new_left, pattern_stmt) = transform_for_header(left, allocator, state, span);
+
+    // Create the new body with pattern assignment if needed
+    let new_body = if let Some(pattern_stmt) = pattern_stmt {
+        create_block_statement(
+            allocator,
+            OxcVec::from_iter_in([
+                pattern_stmt,
+                body
+            ], allocator),
+            span
+        )
+    } else {
+        body
+    };
+
     let iterator_var = state.next_ident_name();
     let next_var = state.next_ident_name();
 
@@ -72,7 +90,7 @@ pub fn transform_for_in_statement<'a>(
 
     // Create the `$tmp = $next.value` assignment. There are a few cases depending on the lhs in the for-in header.
     // (Wow this is annoying in Rust...)
-    let next_value_stmt = match left {
+    let next_value_stmt = match new_left {
         ForStatementLeft::VariableDeclaration(vd) => {
             // Note: this decl may only have one declarator (syntactic restriction)
             let VariableDeclaration { declarations, span: decl_span, kind, modifiers: _modifiers } = vd.unbox();
@@ -165,7 +183,7 @@ pub fn transform_for_in_statement<'a>(
             // `let x = $next.value;` (where `let x` was some lhs like `for (let x in y) { ... }`)
             next_value_stmt,
             // <body>
-            body,
+            new_body,
         ], allocator), span),
         span,
     );

@@ -22,6 +22,10 @@ fn parse_and_map(source: &str) -> String {
     let parser = Parser::new(&allocator, source, source_type);
     let parsed = parser.parse();
 
+    if !parsed.errors.is_empty() {
+        panic!("Input code could not be parsed: {:?}", parsed.errors);
+    }
+
     let mut mapper = create_mapper(&allocator);
 
     // Add visitor to transform do-while into while
