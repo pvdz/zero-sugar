@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Zero Sugar REPL</title>
+    <style>
+        :root {
+            --border-color: #e0e0e0;
+            --bg-color: #f8f9fa;
+            --text-color: #343a40;
+            --header-color: #495057;
+            --accent-color: #228be6;
+            --button-hover: #1971c2;
+            --panel-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            --panel-title: #1a1c1e;
+            --panel-subtitle: #868e96;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.4;
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            color: var(--text-color);
+            background: var(--bg-color);
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+            box-shadow: var(--panel-shadow);
+        }
+
+        h1 {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--header-color);
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background: var(--button-hover);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 400px 200px auto;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-color);
+            overflow: auto;
+            min-height: 0;
+            margin: 0 auto;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .panel {
+            background: white;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: var(--panel-shadow);
+            overflow: hidden;
+            position: relative;
+            min-height: 200px;
+        }
+
+        .panel-header {
+            font-size: 0.9em;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex: 0 0 auto;
+        }
+
+        .panel-header span {
+            color: var(--panel-title);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            font-size: 0.95em;
+        }
+
+        #debug .panel-header span,
+        #description .panel-header span {
+            color: var(--panel-subtitle);
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        textarea, #debug pre {
+            position: absolute;
+            top: 52px;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            resize: none;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: "SF Mono", "Consolas", "Monaco", monospace;
+            font-size: 14px;
+            tab-size: 2;
+            line-height: 1.5;
+            background: var(--bg-color);
+            color: var(--text-color);
+            overflow: auto;
+        }
+
+        #debug pre {
+            margin: 0;
+            white-space: pre-wrap;
+            font-size: 13px;
+            border: none;
+            background: none;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(34,139,230,0.1);
+        }
+
+        #debug, #description {
+            grid-column: 1 / -1;
+            overflow: hidden;
+        }
+
+        /* Fullscreen mode */
+        body.fullscreen main {
+            max-width: none;
+            margin: 0;
+            height: 100vh;
+            grid-template-rows: 1fr 0.5fr;
+        }
+
+        body.fullscreen header {
+            display: none;
+        }
+
+        body.fullscreen #description {
+            display: none;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #bbb;
+        }
+
+        #description {
+            overflow: visible;
+            min-height: 0;
+            height: fit-content;
+        }
+
+        #description.panel {
+            min-height: 0;
+        }
+
+        #description .panel-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            position: static;
+            margin: 0;
+            overflow: visible;
+            margin-bottom: 0;
+        }
+
+        #description pre {
+            display: none;
+        }
+
+        #description p {
+            color: var(--text-color);
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        #description ul {
+            list-style-position: inside;
+            padding-left: 8px;
+            color: var(--text-color);
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        #description li {
+            margin-bottom: 4px;
+        }
+
+        #description code {
+            font-family: "SF Mono", "Consolas", "Monaco", monospace;
+            background: var(--bg-color);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 style="display:inline;">Zero Sugar REPL</h1>
+        &nbsp;<i>A compiler to transform JSSugar to JS0.</i> &nbsp;<small>By Peter van der Zee, 2025-01-05, &copy; <a href="https://pvdz.ee">pvdz.ee</a>. View source on <a href="https://github.com/pvdz/zero-sugar">GitHub</a>.</small>
+    </header>
+
+    <main>
+        <div class="panel">
+            <div class="panel-header">
+                <span>Input JavaScript</span>
+                <button id="transform">Transform</button>
+            </div>
+            <textarea id="input" spellcheck="false">// Enter JavaScript code here
+function example() {
+    let a = 1, [b] = window;
+    do {
+        console.log("hello", a, b);
+    } while (true);
+}</textarea>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span>Transformed Output</span>
+                <button id="fullscreen">Fullscreen</button>
+            </div>
+            <textarea id="output" readonly spellcheck="false"></textarea>
+        </div>
+
+        <div class="panel" id="debug">
+            <div class="panel-header">
+                <span>Debug Output</span>
+            </div>
+            <pre id="debug-content"></pre>
+        </div>
+
+        <div class="panel" id="description">
+            <div class="panel-header">
+                <span>About</span>
+                <p>This is a REPL for zero-sugar.js, the Zero Sugar compiler. It's a tongue in cheek and incomplete compiler whose goal it is to reduce the syntax surface of the JS language by rewriting certain constructs ("JSSugar") into atomic building blocks ("JS0").</p>
+
+                <p>I made zero-sugar.js more as a joke than antyhing else. I love writing this stuff but despite that I'm not sure I'm on board with the language forcing users into a compile step.</p>
+
+                <p>At the time of writing it supports a handful of features:</p>
+
+                <ul>
+                    <li>Transform all loops (`for`, `for-of`, `for-in`, `do-while`) to regular `while` loops</li>
+                    <li>Transform `switch` statements to `if-else` chains</li>
+                    <li>Transform `finally` to `catch`</li>
+                    <li>Transform `continue` to `break`</li>
+                    <li>Normalize variable declarations define one variable and no patterns</li>
+                </ul>
+
+                <p>This work is inspired by my <a href="https://github.com/pvdz/preval">Preval project</a>, which tries to reduce the input source to simple building blocks to make optimizations easier by reducing transformation complexity.</p>
+
+                <p>This project was made in Rust using the Oxc parser (only) to parse the code. It is compiled to WebAssembly and can run in the browser and node.js.</p>
+
+                <p>I don't expect this project to be extended but <a href="https://bsky.app/profile/pvdz.ee">I'm open to suggestions</a>.</p>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import init, { transform_code } from '../../pkg/zero_sugar.js';
+
+        async function main() {
+            await init();
+
+            let transformBtn = document.getElementById('transform');
+            let fullscreenBtn = document.getElementById('fullscreen');
+            let inputArea = document.getElementById('input');
+            let outputArea = document.getElementById('output');
+            let debugContent = document.getElementById('debug-content');
+
+            transformBtn.addEventListener('click', () => {
+                try {
+                    const result = transform_code(inputArea.value);
+                    outputArea.value = result.transformed_code;
+
+                    if (result.had_error) {
+                        debugContent.textContent = `Error: ${result.error_message}`;
+                    } else {
+                        debugContent.textContent = 'Transform completed successfully.\n\nAST:\n' + result.transformed_ast;
+                    }
+                } catch (e) {
+                    debugContent.textContent = `Error: ${e.message}`;
+                }
+            });
+
+            fullscreenBtn.addEventListener('click', () => {
+                document.body.classList.toggle('fullscreen');
+                fullscreenBtn.textContent = document.body.classList.contains('fullscreen') ? 'Exit Fullscreen' : 'Fullscreen';
+            });
+
+            // Initial transform
+            transformBtn.click();
+        }
+
+        main().catch(console.error);
+    </script>
+</body>
+</html>
