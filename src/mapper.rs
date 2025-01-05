@@ -260,9 +260,16 @@ impl<'a> Mapper<'a> {
                         let class_decl = self.map_class(class_decl.unbox());
                         Declaration::ClassDeclaration(OxcBox(self.allocator.alloc(class_decl)))
                     }
-                    other => other,
+                    Declaration::UsingDeclaration(_) => panic!("UsingDeclaration (stage 3) is not supported"),
+                    Declaration::TSTypeAliasDeclaration(_) => panic!("TSTypeAliasDeclaration is not supported"),
+                    Declaration::TSInterfaceDeclaration(_) => panic!("TSInterfaceDeclaration is not supported"),
+                    Declaration::TSModuleDeclaration(_) => panic!("TSModuleDeclaration is not supported"),
+                    Declaration::TSEnumDeclaration(_) => panic!("TSEnumDeclaration is not supported"),
+                    Declaration::TSImportEqualsDeclaration(_) => panic!("TSImportEqualsDeclaration is not supported"),
                 }),
-                Statement::ModuleDeclaration(_) => todo!("Module declarations not yet implemented"),
+                Statement::ModuleDeclaration(module_decl) => {
+                    Statement::ModuleDeclaration(module_decl)
+                },
             };
         }
 
@@ -1167,136 +1174,6 @@ impl<'a> Mapper<'a> {
             quasis,  // TemplateElement contains only static strings, no need to map
             expressions: new_expressions,
             span,
-        }
-    }
-
-    fn map_jsx_child(&self, child: JSXChild<'a>) -> JSXChild<'a> {
-        match child {
-            JSXChild::Element(element) => {
-                JSXChild::Element(OxcBox(self.allocator.alloc(self.map_jsx_element(element.unbox()))))
-            }
-            JSXChild::Fragment(fragment) => {
-                JSXChild::Fragment(OxcBox(self.allocator.alloc(self.map_jsx_fragment(fragment.unbox()))))
-            }
-            JSXChild::ExpressionContainer(expr) => {
-                let JSXExpressionContainer { expression, span } = expr;
-                match expression {
-                    JSXExpression::Expression(expr) => {
-                        JSXChild::ExpressionContainer(JSXExpressionContainer {
-                            expression: JSXExpression::Expression(self.map_expression(expr)),
-                            span,
-                        })
-                    }
-                    JSXExpression::EmptyExpression(expr) => {
-                        JSXChild::ExpressionContainer(JSXExpressionContainer {
-                            expression: JSXExpression::EmptyExpression(expr),
-                            span,
-                        })
-                    }
-                }
-            }
-            JSXChild::Spread(spread) => {
-                let JSXSpreadChild { expression, span } = spread;
-                JSXChild::Spread(JSXSpreadChild {
-                    expression: self.map_expression(expression),
-                    span,
-                })
-            }
-            _ => child, // Text and other static elements don't need mapping
-        }
-    }
-
-    fn map_jsx_element(&self, element: JSXElement<'a>) -> JSXElement<'a> {
-        let JSXElement { opening_element, closing_element, children, span } = element;
-        let mut new_children = OxcVec::with_capacity_in(children.len(), self.allocator);
-        for child in children {
-            new_children.push(self.map_jsx_child(child));
-        }
-        JSXElement {
-            opening_element: OxcBox(self.allocator.alloc(self.map_jsx_opening_element(opening_element.unbox()))),
-            closing_element,
-            children: new_children,
-            span,
-        }
-    }
-
-    fn map_jsx_fragment(&self, fragment: JSXFragment<'a>) -> JSXFragment<'a> {
-        let JSXFragment { opening_fragment, closing_fragment, children, span } = fragment;
-        let mut new_children = OxcVec::with_capacity_in(children.len(), self.allocator);
-        for child in children {
-            new_children.push(self.map_jsx_child(child));
-        }
-        JSXFragment {
-            opening_fragment,
-            closing_fragment,
-            children: new_children,
-            span,
-        }
-    }
-
-    fn map_jsx_opening_element(&self, element: JSXOpeningElement<'a>) -> JSXOpeningElement<'a> {
-        let JSXOpeningElement { name, attributes, self_closing, span, type_parameters } = element;
-        let mut new_attributes = OxcVec::with_capacity_in(attributes.len(), self.allocator);
-        for attr in attributes {
-            new_attributes.push(self.map_jsx_attribute(attr));
-        }
-        JSXOpeningElement {
-            name,  // JSXElementName is static
-            attributes: new_attributes,
-            self_closing,
-            span,
-            type_parameters,
-        }
-    }
-
-    fn map_jsx_attribute(&self, attribute: JSXAttributeItem<'a>) -> JSXAttributeItem<'a> {
-        match attribute {
-            JSXAttributeItem::Attribute(attr) => {
-                let JSXAttribute { name, value, span } = attr.unbox();
-                JSXAttributeItem::Attribute(OxcBox(self.allocator.alloc(JSXAttribute {
-                    name,  // JSXAttributeName is static
-                    value: value.map(|v| self.map_jsx_attribute_value(v)),
-                    span,
-                })))
-            }
-            JSXAttributeItem::SpreadAttribute(spread) => {
-                let JSXSpreadAttribute { argument, span } = spread.unbox();
-                JSXAttributeItem::SpreadAttribute(OxcBox(self.allocator.alloc(JSXSpreadAttribute {
-                    argument: self.map_expression(argument),
-                    span,
-                })))
-            }
-        }
-    }
-
-    fn map_jsx_attribute_value(&self, value: JSXAttributeValue<'a>) -> JSXAttributeValue<'a> {
-        match value {
-            JSXAttributeValue::Fragment(fragment) => {
-                JSXAttributeValue::Fragment(OxcBox(self.allocator.alloc(self.map_jsx_fragment(fragment.unbox()))))
-            }
-            JSXAttributeValue::Element(element) => {
-                JSXAttributeValue::Element(OxcBox(self.allocator.alloc(self.map_jsx_element(element.unbox()))))
-            }
-            JSXAttributeValue::ExpressionContainer(expr) => {
-                let JSXExpressionContainer { expression, span } = expr;
-                match expression {
-                    JSXExpression::Expression(expr) => {
-                        JSXAttributeValue::ExpressionContainer(JSXExpressionContainer {
-                            expression: JSXExpression::Expression(self.map_expression(expr)),
-                            span,
-                        })
-                    }
-                    JSXExpression::EmptyExpression(expr) => {
-                        JSXAttributeValue::ExpressionContainer(JSXExpressionContainer {
-                            expression: JSXExpression::EmptyExpression(expr),
-                            span,
-                        })
-                    }
-                }
-            }
-            JSXAttributeValue::StringLiteral(lit) => {
-                JSXAttributeValue::StringLiteral(lit)
-            }
         }
     }
 }
