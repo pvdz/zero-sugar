@@ -105,7 +105,7 @@ pub fn transform_switch_statement<'a>(
             if let Statement::Declaration(decl) = stmt {
                 match decl {
                     Declaration::VariableDeclaration(var_decl) => {
-                        let VariableDeclaration { kind: _kind, declarations, span: var_decl_span, modifiers: _modifiers } = var_decl.unbox();
+                        let VariableDeclaration { kind: _kind, declarations, span: _var_decl_span, modifiers: _modifiers } = var_decl.unbox();
                         assert!(declarations.len() == 1, "Var decls should be split apart by an earlier pass above");
                         let decl = declarations.into_iter().next().unwrap();
                         let VariableDeclarator { id, init, span: var_decr_span, kind: _kind, definite: _definite } = decl;
