@@ -114,14 +114,20 @@ fn test_continue_in_switch() {
 
     assert_snapshot!(result, @r#"
     while(x)$zeroSugar0:{
-    	switch(y){
-    		case 1:
+    	$zeroSugar1:	{
+    		let $zeroSugar3 = 2;
+    		if ($zeroSugar3 === 1) 		$zeroSugar3 = 0;
+     else 
+    			$zeroSugar3 = 1;
+    		if ($zeroSugar3 <= 0) {
     			if (z) 			break $zeroSugar0;
 
     			console.log('one');
-    			break;
-    		default:
+    			break $zeroSugar1;
+    		}
+    		if ($zeroSugar3 <= 1) {
     			console.log('other');
+    		}
     	}
     }
     "#);

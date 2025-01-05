@@ -8,6 +8,7 @@ use oxc_span::Span;
 use oxc_allocator::Vec as OxcVec;
 use oxc_allocator::Box as OxcBox;
 use oxc_allocator::Allocator;
+use oxc_span::GetSpan; // This is necessary to make stmt/expr .span() work
 
 pub fn create_assignment_expression<'alloc>(
     allocator: &'alloc Allocator,
@@ -33,7 +34,7 @@ pub fn create_assignment_expression_name<'alloc>(
     create_assignment_expression(
         allocator,
         AssignmentOperator::Assign,
-        create_identifier_reference(allocator, left_name, span),
+        create_identifier_reference(left_name, span),
         right,
         span
     )
@@ -49,6 +50,46 @@ pub fn create_assignment_expression_member<'alloc>(
     Expression::AssignmentExpression(OxcBox(allocator.alloc(AssignmentExpression {
         operator,
         left: AssignmentTarget::SimpleAssignmentTarget(SimpleAssignmentTarget::MemberAssignmentTarget(OxcBox(allocator.alloc(left)))),
+        right,
+        span
+    })))
+}
+
+pub fn create_obj_assignment_pattern_from_binding_pattern<'alloc>(
+    allocator: &'alloc Allocator,
+    left: ObjectPattern<'alloc>,
+    right: Expression<'alloc>,
+    span: Span
+) -> Expression<'alloc> {
+    let binding_pattern = BindingPattern {
+        kind: BindingPatternKind::ObjectPattern(OxcBox(allocator.alloc(left))),
+        type_annotation: None,
+        optional: false,
+    };
+
+    Expression::AssignmentExpression(OxcBox(allocator.alloc(AssignmentExpression {
+        operator: AssignmentOperator::Assign,
+        left: convert_binding_pattern_to_assignment_target(allocator, binding_pattern),
+        right,
+        span
+    })))
+}
+
+pub fn create_arr_assignment_pattern_from_binding_pattern<'alloc>(
+    allocator: &'alloc Allocator,
+    left: ArrayPattern<'alloc>,
+    right: Expression<'alloc>,
+    span: Span
+) -> Expression<'alloc> {
+    let binding_pattern = BindingPattern {
+        kind: BindingPatternKind::ArrayPattern(OxcBox(allocator.alloc(left))),
+        type_annotation: None,
+        optional: false,
+    };
+
+    Expression::AssignmentExpression(OxcBox(allocator.alloc(AssignmentExpression {
+        operator: AssignmentOperator::Assign,
+        left: convert_binding_pattern_to_assignment_target(allocator, binding_pattern),
         right,
         span
     })))
@@ -195,7 +236,6 @@ pub fn create_identifier_expression<'alloc>(
 }
 
 pub fn create_identifier_reference<'alloc>(
-    _allocator: &'alloc Allocator,
     name: String,
     span: Span
 ) -> IdentifierReference {
@@ -419,11 +459,10 @@ pub fn create_variable_declaration_kind<'alloc>(
     init: Option<Expression<'alloc>>,
     span: Span
 ) -> Statement<'alloc> {
-    let mut declarations = OxcVec::with_capacity_in(1, allocator);
-    declarations.push(create_variable_declarator(allocator, name, init, span));
+    let declr = create_variable_declarator(allocator, name, init, span);
     let decl = VariableDeclaration {
         kind,
-        declarations,
+        declarations: OxcVec::from_iter_in([declr], allocator),
         modifiers: Modifiers::empty(),
         span,
     };
@@ -431,4 +470,192 @@ pub fn create_variable_declaration_kind<'alloc>(
     Statement::Declaration(
         Declaration::VariableDeclaration(OxcBox(allocator.alloc(decl)))
     )
+}
+
+pub fn create_variable_declaration_kind_declr<'alloc>(
+    allocator: &'alloc Allocator,
+    kind: VariableDeclarationKind,
+    declr: VariableDeclarator<'alloc>,
+    span: Span
+) -> Statement<'alloc> {
+    let decl = VariableDeclaration {
+        kind,
+        declarations: OxcVec::from_iter_in([declr], allocator),
+        modifiers: Modifiers::empty(),
+        span,
+    };
+
+    Statement::Declaration(
+        Declaration::VariableDeclaration(OxcBox(allocator.alloc(decl)))
+    )
+}
+
+
+/// `let x = y` -> `x = y;`
+///      ^          ^
+fn convert_binding_identifier_to_assignment_target<'alloc>(
+    allocator: &'alloc Allocator,
+    id: BindingIdentifier,
+) -> AssignmentTarget<'alloc> {
+    AssignmentTarget::SimpleAssignmentTarget(SimpleAssignmentTarget::AssignmentTargetIdentifier(OxcBox(allocator.alloc(
+        create_identifier_reference(id.name.to_string(), id.span)
+    ))))
+}
+
+/// `let {x} = y` -> `({x} = y);`
+///      ^^^           ^^^
+/// `let {x = def} = y` -> `({x = def} = y);`
+///      ^^^^^^^^^           ^^^^^^^^^
+fn convert_binding_pattern_obj_shorthand_to_assignment_target<'alloc>(
+    allocator: &'alloc Allocator,
+    key: PropertyKey<'alloc>,
+    value: BindingPattern<'alloc>,
+) -> AssignmentTargetProperty<'alloc> {
+    let key_span = key.span();
+    let name = match key {
+        PropertyKey::Identifier(ident) => ident.name.clone(),
+        _ => panic!("Expected identifier key in shorthand"),
+    };
+    // We must still check the value to determine the difference between `let {x} = y` and `let {x = def} = y`
+    match &value.kind {
+        BindingPatternKind::BindingIdentifier(_) => {
+            // `let {x} = y` -> `({x} = y);`
+            //      ^^^           ^^^
+            AssignmentTargetProperty::AssignmentTargetPropertyIdentifier(OxcBox(allocator.alloc(
+                AssignmentTargetPropertyIdentifier {
+                    init: None,
+                    span: key_span,
+                    binding: create_identifier_reference(name.to_string(), key_span),
+                }
+            )))
+        }
+        BindingPatternKind::AssignmentPattern(_) => {
+            // `let {x = def} = y` -> `({x = def} = y);`
+            //      ^^^^^^^^^           ^^^^^^^^^
+            AssignmentTargetProperty::AssignmentTargetPropertyProperty(OxcBox(allocator.alloc(AssignmentTargetPropertyProperty {
+                name: PropertyKey::Identifier(OxcBox(allocator.alloc(IdentifierName {
+                    name: Atom::from(name),
+                    span: key_span,
+                }))),
+                binding: AssignmentTargetMaybeDefault::AssignmentTarget(convert_binding_pattern_to_assignment_target(allocator, value)),
+                span: key_span,
+            })))
+        }
+        BindingPatternKind::ObjectPattern(_) => {
+            // I don't think this is possible
+            todo!("I dont think you can have an object pattern value in a shorthand pattern...");
+        }
+        BindingPatternKind::ArrayPattern(_) => {
+            todo!("I dont think you can have an array pattern value in a shorthand pattern...");
+        }
+    }
+}
+
+/// `let {a: x} = y` -> `({a: x} = y);
+///      ^^^^^            ^^^^^
+fn convert_binding_pattern_obj_to_assignment_target<'alloc>(
+    allocator: &'alloc Allocator,
+    pattern: ObjectPattern<'alloc>,
+) -> AssignmentTarget<'alloc> {
+    let properties = OxcVec::from_iter_in(
+        pattern.properties.into_iter().map(|prop| {
+            let BindingProperty { key, value, shorthand, computed: _computed, span } = prop;
+            // Afaik, `computed` <-> key=Expression so it's redundant here and we can ignore it?
+
+            if shorthand {
+                // `let {x} = y` -> `({x} = y);`
+                // `let {x = def} = y` -> `({x = def} = y);`
+                convert_binding_pattern_obj_shorthand_to_assignment_target(allocator, key, value)
+            } else {
+                // key can be any form; ident, computed, private but we can move that node
+                AssignmentTargetProperty::AssignmentTargetPropertyProperty(OxcBox(allocator.alloc(AssignmentTargetPropertyProperty {
+                    name: key,
+                    binding: AssignmentTargetMaybeDefault::AssignmentTarget(convert_binding_pattern_to_assignment_target(allocator, value)),
+                    span,
+                })))
+            }
+        }),
+        allocator
+    );
+
+    let rest = match pattern.rest {
+        Some(rest) => Some(convert_binding_pattern_to_assignment_target(allocator, rest.unbox().argument)),
+        None => None,
+    };
+
+    AssignmentTarget::AssignmentTargetPattern(
+        AssignmentTargetPattern::ObjectAssignmentTarget(
+            OxcBox(allocator.alloc(ObjectAssignmentTarget {
+                properties,
+                rest,
+                span: pattern.span,
+            }))
+        )
+    )
+}
+
+/// `let [x] = y` -> `([x] = y);`
+///      ^^^           ^^^
+fn convert_binding_pattern_arr_to_assignment_target<'alloc>(
+    allocator: &'alloc Allocator,
+    pattern: ArrayPattern<'alloc>,
+) -> AssignmentTarget<'alloc> {
+    let ArrayPattern { elements, rest, span } = pattern;
+
+    let elements = OxcVec::from_iter_in(
+        elements.into_iter().map(|elem| {
+            let elem = match elem {
+                Some(elem) => elem,
+                None => return None, // elided elements
+            };
+
+            // key can be any form; ident, computed, private but we can move that node
+            Some(AssignmentTargetMaybeDefault::AssignmentTarget(convert_binding_pattern_to_assignment_target(allocator, elem)))
+        }),
+        allocator
+    );
+
+    let rest = match rest {
+        Some(rest) => Some(convert_binding_pattern_to_assignment_target(allocator, rest.unbox().argument)),
+        None => None,
+    };
+
+    AssignmentTarget::AssignmentTargetPattern(
+        AssignmentTargetPattern::ArrayAssignmentTarget(
+            OxcBox(allocator.alloc(ArrayAssignmentTarget {
+                elements,
+                rest,
+                trailing_comma: None, // ArrayPattern does not have this property so we can only set it to None here
+                span,
+            }))
+        )
+    )
+}
+
+/// Convert a binding pattern as used in a var decl or param, to a pattern
+/// node that can be used in an assignment expression since they are incompatible.
+fn convert_binding_pattern_to_assignment_target<'alloc>(
+    allocator: &'alloc Allocator,
+    pattern: BindingPattern<'alloc>,
+) -> AssignmentTarget<'alloc> {
+    match pattern.kind {
+        // `let x = y` -> `x = y;`
+        BindingPatternKind::BindingIdentifier(id) => {
+            convert_binding_identifier_to_assignment_target(allocator, id.unbox())
+        }
+        // `let {x} = y` -> `({x} = y);`
+        BindingPatternKind::ObjectPattern(obj) => {
+            convert_binding_pattern_obj_to_assignment_target(allocator, obj.unbox())
+        },
+        // `let [x] = y` -> `([x] = y);`
+        BindingPatternKind::ArrayPattern(arr) => {
+            convert_binding_pattern_arr_to_assignment_target(allocator, arr.unbox())
+        },
+        // This is only the default part of a pattern (`let [x = def] = y`)
+        // Unfortunately, Oxc chose to use this enum for binding patterns but AssignmentTargetMaybeDefault::AssignmentTargetWithDefault
+        // for assignment patterns (there may be a reason but it's not obvious to me)
+        BindingPatternKind::AssignmentPattern(_assign) => {
+            todo!("zucht");
+        },
+    }
 }

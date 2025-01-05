@@ -107,7 +107,6 @@ pub fn transform_for_header<'a>(
                         AssignmentTarget::SimpleAssignmentTarget(
                             SimpleAssignmentTarget::AssignmentTargetIdentifier(
                                 OxcBox(allocator.alloc(create_identifier_reference(
-                                    allocator,
                                     tmp_name.clone(),
                                     span
                                 )))
@@ -140,7 +139,6 @@ pub fn transform_for_header<'a>(
                         AssignmentTarget::SimpleAssignmentTarget(
                             SimpleAssignmentTarget::AssignmentTargetIdentifier(
                                 OxcBox(allocator.alloc(create_identifier_reference(
-                                    allocator,
                                     tmp_name.clone(),
                                     span
                                 )))

@@ -7,6 +7,8 @@ pub mod mapper_state;
 use transforms::stmt_continue::apply_continue_transform_updates;
 use transforms::stmt_for_in::transform_for_in_statement;
 use transforms::stmt_for_of::transform_for_of_statement;
+use transforms::stmt_switch::transform_switch_statement;
+use transforms::stmt_var_decl::transform_var_decl_statement;
 use wasm_bindgen::prelude::*;
 
 use oxc_allocator::Allocator;
@@ -109,6 +111,13 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
             }
             (false, Statement::ContinueStatement(continue_stmt)) => {
                 transform_continue_statement(continue_stmt.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (false, Statement::SwitchStatement(switch_stmt)) => {
+                transform_switch_statement(switch_stmt.unbox(), allocator, &mut state.borrow_mut())
+            }
+            (true, Statement::BlockStatement(block_stmt)) => {
+                // Do this on-enter rather than on-exit
+                transform_var_decl_statement(block_stmt.unbox(), allocator, &mut state.borrow_mut())
             }
             (false, other) => (false, other),
             (true, stmt) => (false, stmt),
