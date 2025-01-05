@@ -56,7 +56,7 @@ impl<'a> Mapper<'a> {
         Program { body: new_body, span, source_type, directives, hashbang }
     }
 
-    fn map_statement(&self, mut stmt: Statement<'a>) -> Statement<'a> {
+    pub fn map_statement(&self, mut stmt: Statement<'a>) -> Statement<'a> {
         // Apply before visitors first
         let mut skip_visit = false;
         for visitor in &self.visitors_stmt {
@@ -173,21 +173,7 @@ impl<'a> Mapper<'a> {
                     Statement::ReturnStatement(OxcBox(self.allocator.alloc(ReturnStatement { argument, span })))
                 }
                 Statement::SwitchStatement(switch) => {
-                    let SwitchStatement { discriminant, cases, span } = switch.unbox();
-
-                    let discriminant = self.map_expression(discriminant);
-                    let mut new_cases = OxcVec::with_capacity_in(cases.len(), self.allocator);
-
-                    for case in cases {
-                        let test = case.test.map(|test| self.map_expression(test));
-                        let mut new_consequent = OxcVec::with_capacity_in(case.consequent.len(), self.allocator);
-                        for stmt in case.consequent {
-                            new_consequent.push(self.map_statement(stmt));
-                        }
-                        new_cases.push(SwitchCase { test, consequent: new_consequent, span: case.span });
-                    }
-
-                    Statement::SwitchStatement(OxcBox(self.allocator.alloc(SwitchStatement { discriminant, cases: new_cases, span })))
+                    Statement::SwitchStatement(OxcBox(self.allocator.alloc(self.map_switch_statement(switch.unbox()))))
                 }
                 Statement::ThrowStatement(throw) => {
                     let ThrowStatement { argument, span } = throw.unbox();
@@ -294,6 +280,24 @@ impl<'a> Mapper<'a> {
         }
 
         stmt
+    }
+
+    pub fn map_switch_statement(&self, stmt: SwitchStatement<'a>) -> SwitchStatement<'a> {
+        let SwitchStatement { discriminant, cases, span } = stmt;
+
+        let discriminant = self.map_expression(discriminant);
+        let mut new_cases = OxcVec::with_capacity_in(cases.len(), self.allocator);
+
+        for case in cases {
+            let test = case.test.map(|test| self.map_expression(test));
+            let mut new_consequent = OxcVec::with_capacity_in(case.consequent.len(), self.allocator);
+            for stmt in case.consequent {
+                new_consequent.push(self.map_statement(stmt));
+            }
+            new_cases.push(SwitchCase { test, consequent: new_consequent, span: case.span });
+        }
+
+        SwitchStatement { discriminant, cases: new_cases, span }
     }
 
     fn map_expression(&self, mut expr: Expression<'a>) -> Expression<'a> {
