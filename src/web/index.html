@@ -235,6 +235,26 @@
             border-radius: 3px;
             font-size: 0.9em;
         }
+
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .live-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9em;
+            color: var(--panel-subtitle);
+            cursor: pointer;
+        }
+
+        .live-toggle input {
+            margin: 0;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -247,7 +267,13 @@
         <div class="panel">
             <div class="panel-header">
                 <span>Input JavaScript</span>
-                <button id="transform">Transform</button>
+                <div class="button-group">
+                    <label class="live-toggle">
+                        <input type="checkbox" checked id="liveMode">
+                        Live Mode
+                    </label>
+                    <button id="transform">Transform</button>
+                </div>
             </div>
             <textarea id="input" spellcheck="false">// Enter JavaScript code here
 function example() {
@@ -310,8 +336,9 @@ function example() {
             let inputArea = document.getElementById('input');
             let outputArea = document.getElementById('output');
             let debugContent = document.getElementById('debug-content');
+            let liveModeCheckbox = document.getElementById('liveMode');
 
-            transformBtn.addEventListener('click', () => {
+            function transformCode() {
                 try {
                     const result = transform_code(inputArea.value);
                     outputArea.value = result.transformed_code;
@@ -324,6 +351,17 @@ function example() {
                 } catch (e) {
                     debugContent.textContent = `Error: ${e.message}`;
                 }
+            }
+
+            transformBtn.addEventListener('click', transformCode);
+
+            // Add debounced live transform
+            let timeout;
+            inputArea.addEventListener('input', () => {
+                if (!liveModeCheckbox.checked) return;
+
+                clearTimeout(timeout);
+                timeout = setTimeout(transformCode, 300);
             });
 
             fullscreenBtn.addEventListener('click', () => {
@@ -332,7 +370,7 @@ function example() {
             });
 
             // Initial transform
-            transformBtn.click();
+            transformCode();
         }
 
         main().catch(console.error);
