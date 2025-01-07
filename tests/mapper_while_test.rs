@@ -12,7 +12,7 @@ use std::cell::Cell;
 use oxc_syntax::operator::*;
 use oxc_syntax::reference::*;
 
-use zero_sugar::mapper::create_mapper;
+use zero_sugar::mapper::{create_mapper, MapperAction};
 
 // This is testing a bunch of do-while tests with a custom mapper, not the one from /src
 // The point is to have some tests on the mapper, regardless of how the actual transforms work later on
@@ -105,17 +105,30 @@ fn parse_and_map(source: &str) -> String {
             outer_body.push(while_stmt);
 
             // Return the block containing everything
-            (false, Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
+            (MapperAction::Revisit, Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
                 body: outer_body,
                 span,
             }))))
         }
-        (_, other) => (false, other),
+        (_, other) => (MapperAction::Normal, other),
     });
 
     let transformed = mapper.map(parsed.program);
     let codegen: Codegen<false> = Codegen::new(transformed.span.end as usize, CodegenOptions::default());
-    codegen.build(&transformed)
+
+    let out = codegen.build(&transformed);
+
+    // Confirm that the output is at least valid
+    {
+        let out = out.clone();
+        let parser = Parser::new(&allocator, &out, source_type);
+        let parsed = parser.parse();
+        if !parsed.errors.is_empty() {
+            panic!("Transformed code could not be parsed: {:?}", parsed.errors);
+        }
+    }
+
+    out
 }
 
 #[test]

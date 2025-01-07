@@ -12,6 +12,7 @@ use oxc_syntax::operator::BinaryOperator;
 
 use crate::mapper::create_mapper;
 use crate::mapper_state::MapperState;
+use crate::mapper::MapperAction;
 use crate::transforms::builder::*;
 
 /// Transform a switch statement into an if-else chain
@@ -48,7 +49,7 @@ pub fn transform_switch_statement<'a>(
     switch_stmt: SwitchStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
 
     // Step 1: Transform unlabeled breaks that target this switch to labeled breaks
 
@@ -83,7 +84,7 @@ pub fn transform_switch_statement<'a>(
 
     // When there are no cases, simply return the discriminant
     if cases.is_empty() {
-        return (true, discriminant_var_decl);
+        return (MapperAction::Revisit, discriminant_var_decl);
     }
 
     // Step 2: Convert let/const decls in the toplevel of the switch body to assignments and remember their names
@@ -306,9 +307,9 @@ pub fn transform_switch_statement<'a>(
 
     // If we transformed at least one `break` then we need to wrap this block in that label as well.
     if needs_label {
-        (true, create_labeled_statement(allocator, switch_label, new_block, switch_span))
+        (MapperAction::Revisit, create_labeled_statement(allocator, switch_label, new_block, switch_span))
     } else {
-        (true, new_block)
+        (MapperAction::Revisit, new_block)
     }
 }
 
@@ -322,7 +323,7 @@ fn update_breaks<'a>(stmt: SwitchStatement<'a>, next_state_index: usize, allocat
     let break_label_name = Rc::new(RefCell::new("".to_string()));
 
     mapper.add_visitor_stmt(move |stmt: Statement<'a>, alloc, before: bool| {
-        if !before { return (false, stmt); }
+        if !before { return (MapperAction::Normal, stmt); }
 
         match stmt {
             Statement::BreakStatement(break_stmt) => {
@@ -332,7 +333,7 @@ fn update_breaks<'a>(stmt: SwitchStatement<'a>, next_state_index: usize, allocat
                         *has_breaks_closure.borrow_mut() = true;
                     }
 
-                    (false, Statement::BreakStatement(OxcBox(alloc.alloc(BreakStatement {
+                    (MapperAction::Normal, Statement::BreakStatement(OxcBox(alloc.alloc(BreakStatement {
                         label: Some(LabelIdentifier {
                             name: Atom::from(break_label_name.borrow().clone()),
                             span: break_stmt.span
@@ -340,7 +341,7 @@ fn update_breaks<'a>(stmt: SwitchStatement<'a>, next_state_index: usize, allocat
                         span: break_stmt.span
                     }))))
                 } else {
-                    (false, Statement::BreakStatement(break_stmt))
+                    (MapperAction::Normal, Statement::BreakStatement(break_stmt))
                 }
             }
 
@@ -357,7 +358,7 @@ fn update_breaks<'a>(stmt: SwitchStatement<'a>, next_state_index: usize, allocat
             | Statement::WhileStatement(_)
             | Statement::TryStatement(_)
             | Statement::Declaration(Declaration::FunctionDeclaration(_))
-            => (true, stmt), // true: Do not enter this node
+            => (MapperAction::Skip, stmt),
 
             // Sanity check: report if we are still finding certain statements because it breaks our assumptions
             | Statement::SwitchStatement(_)
@@ -368,7 +369,7 @@ fn update_breaks<'a>(stmt: SwitchStatement<'a>, next_state_index: usize, allocat
             | Statement::ForOfStatement(_)
             => panic!("This statement should have been eliminated already before exiting the parent block: {:?}", stmt),
 
-            _ => (false, stmt)
+            _ => (MapperAction::Normal, stmt)
         }
     });
 

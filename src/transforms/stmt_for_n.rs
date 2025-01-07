@@ -3,13 +3,14 @@ use oxc_allocator::Box as OxcBox;
 use oxc_ast::ast::*;
 use oxc_allocator::Allocator;
 
+use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
 
 pub fn transform_for_n_statement<'a>(
     for_stmt: ForStatement<'a>,
     allocator: &'a Allocator,
     _state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
     let ForStatement { init, test, update, body, span } = for_stmt;
 
     // Create the while loop test expression - defaults to true if no test provided
@@ -60,11 +61,11 @@ pub fn transform_for_n_statement<'a>(
 
         block_body.push(while_stmt);
 
-        (true, Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+        (MapperAction::Revisit, Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
             body: block_body,
             span,
         }))))
     } else {
-        (false, while_stmt)
+        (MapperAction::Normal, while_stmt)
     }
 }

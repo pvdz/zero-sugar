@@ -6,7 +6,7 @@ use oxc_span::SourceType;
 use oxc_codegen::{Codegen, CodegenOptions};
 use oxc_ast::ast::*;
 
-use zero_sugar::mapper::create_mapper;
+use zero_sugar::mapper::{create_mapper, MapperAction};
 use zero_sugar::transforms::stmt_switch::transform_switch_statement;
 
 fn parse_and_map(source: &str) -> String {
@@ -26,12 +26,26 @@ fn parse_and_map(source: &str) -> String {
         (false, Statement::SwitchStatement(switch_stmt)) => {
             transform_switch_statement(switch_stmt.unbox(), allocator, &mut state.borrow_mut())
         }
-        (_, other) => (false, other),
+        (_, other) => (MapperAction::Normal, other),
     });
 
     let transformed = mapper.map(parsed.program);
     let codegen: Codegen<false> = Codegen::new(transformed.span.end as usize, CodegenOptions::default());
-    codegen.build(&transformed)
+
+    let out = codegen.build(&transformed);
+
+    // Confirm that the output is at least valid
+    {
+        let out = out.clone();
+        let parser = Parser::new(&allocator, &out, source_type);
+        let parsed = parser.parse();
+        if !parsed.errors.is_empty() {
+            panic!("Transformed code could not be parsed: {:?}", parsed.errors);
+        }
+    }
+
+    out
+
 }
 
 #[test]
@@ -417,7 +431,7 @@ fn test_switch_with_while_break() {
     	}
     	if ($zeroSugar2 <= 1) {
     		while(true)		{
-    			break;
+    			break $zeroSugar0;
     		}
     		break $zeroSugar0;
     	}

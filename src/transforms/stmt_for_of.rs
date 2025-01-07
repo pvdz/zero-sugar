@@ -5,7 +5,7 @@ use oxc_syntax::operator::AssignmentOperator;
 use oxc_syntax::operator::BinaryOperator;
 
 use crate::mapper_state::MapperState;
-
+use crate::mapper::MapperAction;
 use super::builder::create_assignment_expression;
 use super::builder::create_assignment_expression_name;
 use super::builder::create_binary_expression;
@@ -27,7 +27,7 @@ pub fn transform_for_of_statement<'a>(
     for_stmt: ForOfStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
     // We cheese this a little bit. Transform the for-of to a while-loop assuming an exposed $forOf function that converts for-of to an iterator.
     // This way we can eliminate the syntactical for-of statement and hide the actual syntax. This simplifies other transforms since we can consolidate
     // all loops to a regular `while` statement.
@@ -218,5 +218,5 @@ pub fn transform_for_of_statement<'a>(
         new_while_stmt,
     ], allocator), span);
 
-    ( true, new_block_stmt )
+    ( MapperAction::Revisit, new_block_stmt )
 }

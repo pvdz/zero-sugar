@@ -5,6 +5,8 @@ use oxc_ast::ast::*;
 use oxc_allocator::Allocator;
 use oxc_span::Atom;
 
+use crate::log;
+use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
 use crate::transforms::builder::create_labeled_stmt;
 
@@ -80,7 +82,8 @@ pub fn transform_continue_statement<'a>(
     continue_stmt: ContinueStatement,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
+    log!("transform_continue_statement");
     let ContinueStatement { label: target_label, span } = continue_stmt;
     let target_label = match target_label {
         Some(LabelIdentifier { name, span: _ }) => name.to_string(),
@@ -115,7 +118,7 @@ pub fn transform_continue_statement<'a>(
         };
 
     (
-        true,
+        MapperAction::Revisit,
         Statement::BreakStatement(OxcBox(allocator.alloc(BreakStatement {
             label: Some(LabelIdentifier {
                 name: Atom::from(generated),

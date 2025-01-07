@@ -8,6 +8,7 @@ use std::cell::Cell;
 use oxc_allocator::Allocator;
 use oxc_span::Span;
 
+use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
 use crate::transforms::builder::*;
 
@@ -28,9 +29,9 @@ pub fn transform_finally_statement<'a>(
     try_stmt: TryStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
     if try_stmt.finalizer.is_none() {
-        ( false, Statement::TryStatement(OxcBox(allocator.alloc(try_stmt))) )
+        ( MapperAction::Normal, Statement::TryStatement(OxcBox(allocator.alloc(try_stmt))) )
     } else if try_stmt.handler.is_some() {
         transform_try_catch_finally(try_stmt, allocator, state)
     } else {
@@ -78,13 +79,13 @@ fn transform_try_catch_finally<'a>(
     try_stmt: TryStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
     // Transform the outer try block and add the generic tail based on abrupt completions that were found
 
     let TryStatement { block, handler, finalizer, span: try_span } = try_stmt;
     let finalizer = match finalizer {
         Some(finalizer) => finalizer,
-        None => return ( false, create_try_statement(allocator, block.unbox(), handler, None, try_span) )
+        None => return ( MapperAction::Normal, create_try_statement(allocator, block.unbox(), handler, None, try_span) )
     };
     let CatchClause { param: catch_param, body: catch_body, span: catch_clause_span } = handler.unwrap().unbox(); // The handler was asserted before calling this function...
     let catch_block_span = catch_body.span.clone();
@@ -242,7 +243,7 @@ fn transform_try_finally<'a>(
     try_stmt: TryStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> ( MapperAction, Statement<'a>) {
     let TryStatement { block, handler: _handler, finalizer, span } = try_stmt;
     let finalizer = match finalizer {
         Some(finalizer) => finalizer,
@@ -341,7 +342,7 @@ fn transform_finally_wrap<'a>(
     use_var: String,
     new_try_label: String,
     target_labels: Vec<String>
-) -> ( bool, Statement<'a> ) {
+) -> ( MapperAction, Statement<'a> ) {
     // Ok now we need to create the outer block that contains:
     // - the var bindings
     // - the labeled outer try
@@ -423,7 +424,7 @@ fn transform_finally_wrap<'a>(
         ));
     }
 
-    (true, create_block_statement(allocator, OxcVec::from_iter_in(new_body, allocator), try_span))
+    (MapperAction::Revisit, create_block_statement(allocator, OxcVec::from_iter_in(new_body, allocator), try_span))
 }
 
 fn transform_return_breaks_recursively<'a>(

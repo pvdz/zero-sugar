@@ -5,7 +5,7 @@ use oxc_syntax::operator::AssignmentOperator;
 use oxc_syntax::operator::BinaryOperator;
 
 use crate::mapper_state::MapperState;
-
+use crate::mapper::MapperAction;
 use super::builder::create_assignment_expression;
 use super::builder::create_assignment_expression_name;
 use super::builder::create_binary_expression;
@@ -27,7 +27,7 @@ pub fn transform_for_in_statement<'a>(
     for_stmt: ForInStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
     // We cheese this a little bit. Transform the for-in to a while-loop assuming an exposed $forIn function that converts for-in to an iterator.
     // This way we can eliminate the syntactical for-in statement and hide the actual syntax. This simplifies other transforms since we can consolidate
     // all loops to a regular `while` statement.
@@ -202,5 +202,5 @@ pub fn transform_for_in_statement<'a>(
     ], allocator), span);
 
 
-    ( true, new_block_stmt )
+    ( MapperAction::Revisit, new_block_stmt )
 }

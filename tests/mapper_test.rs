@@ -10,7 +10,7 @@ use oxc_allocator::Vec as OxcVec;
 use oxc_parser::ParserReturn;
 use oxc_codegen::{Codegen, CodegenOptions};
 
-use zero_sugar::mapper::{Mapper, create_mapper};
+use zero_sugar::mapper::{Mapper, create_mapper, MapperAction};
 use zero_sugar::get_stmt_span::get_stmt_span;
 
 fn parse_and_map<'a>(allocator: &'a Allocator, source: &'a str, mapper: Option<Mapper<'a>>) -> Program<'a> {
@@ -53,7 +53,7 @@ fn test_dowhile_to_while_mapping() {
             block_body.push(body);
 
             // Create the while statement with a true test
-            (false, Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
+            (MapperAction::Normal, Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
                 test,
                 body: Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
                     body: block_body,
@@ -62,7 +62,7 @@ fn test_dowhile_to_while_mapping() {
                 span: do_span
             }))))
         }
-        (_, other) => (false, other)
+        (_, other) => (MapperAction::Normal, other)
     });
 
     let source = "do { console.log('test'); } while (x > 0);";
@@ -113,7 +113,7 @@ fn test_dowhile_to_while_mapping_serialized() {
             let DoWhileStatement { body, test, span } = do_while.unbox();
             let mut block_body = OxcVec::with_capacity_in(1, alloc);
             block_body.push(body);
-            (false, Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
+            (MapperAction::Normal, Statement::WhileStatement(OxcBox(alloc.alloc(WhileStatement {
                 test,
                 body: Statement::BlockStatement(OxcBox(alloc.alloc(BlockStatement {
                     body: block_body,
@@ -122,7 +122,7 @@ fn test_dowhile_to_while_mapping_serialized() {
                 span
             }))))
         }
-        (_, other) => (false, other)
+        (_, other) => (MapperAction::Normal, other)
     });
 
     let source = "do { console.log('test'); } while (x > 0);";

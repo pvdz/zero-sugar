@@ -18,7 +18,7 @@ use oxc_ast::ast::*;
 use oxc_span::Span;
 use oxc_codegen::{Codegen, CodegenOptions};
 
-use crate::mapper::create_mapper;
+use crate::mapper::{create_mapper, MapperAction};
 use crate::transforms::stmt_do_while::transform_do_while_statement;
 use crate::transforms::stmt_for_n::transform_for_n_statement;
 use crate::transforms::stmt_finally::transform_finally_statement;
@@ -55,10 +55,18 @@ pub fn console_log(s: String) {
 #[macro_export]
 macro_rules! log {
     ($fmt_str:literal) => {
+        #[cfg(not(target_arch = "wasm32"))]
+        println!($fmt_str);
+
+        #[cfg(target_arch = "wasm32")]
         console_log(format!($fmt_str))
     };
 
     ($fmt_str:literal, $($args:expr),*) => {
+        #[cfg(not(target_arch = "wasm32"))]
+        println!($fmt_str, $($args),*);
+
+        #[cfg(target_arch = "wasm32")]
         console_log(format!($fmt_str, $($args),*))
     };
 }
@@ -119,8 +127,8 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
                 // Do this on-enter rather than on-exit
                 transform_var_decl_statement(block_stmt.unbox(), allocator, &mut state.borrow_mut())
             }
-            (false, other) => (false, other),
-            (true, stmt) => (false, stmt),
+            (false, other) => (MapperAction::Normal, other),
+            (true, stmt) => (MapperAction::Normal, stmt),
         }
     });
 

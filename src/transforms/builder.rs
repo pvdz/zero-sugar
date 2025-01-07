@@ -95,6 +95,14 @@ pub fn create_arr_assignment_pattern_from_binding_pattern<'alloc>(
     })))
 }
 
+pub fn create_array_expression<'alloc>(
+    allocator: &'alloc Allocator,
+    elements: OxcVec<'alloc, ArrayExpressionElement<'alloc>>,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::ArrayExpression(OxcBox(allocator.alloc(ArrayExpression { elements, span, trailing_comma: None })))
+}
+
 pub fn create_block_statement<'alloc>(
     allocator: &'alloc Allocator,
     body: OxcVec<'alloc, Statement<'alloc>>,
@@ -311,6 +319,15 @@ pub fn create_member_expression_computed<'alloc>(
     Expression::MemberExpression(OxcBox(allocator.alloc(MemberExpression::ComputedMemberExpression(ComputedMemberExpression { object, expression, optional: false, span }))))
 }
 
+pub fn create_member_expression_computed_ident<'alloc>(
+    allocator: &'alloc Allocator,
+    object: Expression<'alloc>,
+    prop_ident_name: String,
+    span: Span
+) -> Expression<'alloc> {
+    create_member_expression_computed(allocator, object, create_identifier_expression(allocator, prop_ident_name, span), span)
+}
+
 pub fn create_number_literal<'alloc>(
     allocator: &'alloc Allocator,
     value: f64,
@@ -343,6 +360,14 @@ pub fn create_return_statement<'alloc>(
         argument,
         span,
     })))
+}
+
+pub fn create_string_literal<'alloc>(
+    allocator: &'alloc Allocator,
+    value: String,
+    span: Span
+) -> Expression<'alloc> {
+    Expression::StringLiteral(OxcBox(allocator.alloc(StringLiteral { value: Atom::from(value), span })))
 }
 
 pub fn create_throw_statement<'alloc>(
@@ -419,6 +444,20 @@ pub fn create_variable_declarator<'alloc>(
     VariableDeclarator {
         kind: VariableDeclarationKind::Let,
         id,
+        init,
+        definite: false,
+        span,
+    }
+}
+
+pub fn create_variable_declarator_pattern<'alloc>(
+    pattern: BindingPattern<'alloc>,
+    init: Option<Expression<'alloc>>,
+    span: Span
+) -> VariableDeclarator<'alloc> {
+    VariableDeclarator {
+        kind: VariableDeclarationKind::Let,
+        id: pattern,
         init,
         definite: false,
         span,

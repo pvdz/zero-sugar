@@ -7,13 +7,14 @@ use oxc_syntax::operator::*;
 use oxc_syntax::reference::*;
 use oxc_allocator::Allocator;
 
+use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
 
 pub fn transform_do_while_statement<'a>(
     do_while: DoWhileStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
-) -> (bool, Statement<'a>) {
+) -> (MapperAction, Statement<'a>) {
     let loop_test_ident = state.next_ident_name();
 
     let DoWhileStatement { body, test, span } = do_while;
@@ -90,8 +91,11 @@ pub fn transform_do_while_statement<'a>(
     outer_body.push(while_stmt);
 
     // Return the block containing everything
-    (true, Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
-        body: outer_body,
-        span,
-    }))))
+    (
+        MapperAction::Revisit,
+        Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+            body: outer_body,
+            span,
+        })))
+    )
 }
