@@ -10,7 +10,7 @@ There is a simple web REPL at my website: https://pvdz.ee/project/zero-sugar
 
 ## Features
 
-Converts the following JS syntax away in favor of simpler JS:
+Currently converts the following JS/TS syntax away in favor of simpler JS:
 
 - `switch` statements, in favor of `if-else` chains
 - `continue` keyword, in favor of labeled `break`
@@ -25,7 +25,7 @@ This is a Rust project. You have to compile the code to wasm using the build.sh 
 
 By default it targets the web but you can update the target in the build script to target nodejs instead, after which you can run `example.js` with nodejs (or anything else, I guess).
 
-For the web, you only need to run the `build.sh` script to update the wasm binaries and reload your browser. Due to web platform restrictions you have to run the web repl from a webserver of any kind, a local webserver should work fine. It just won't work on `file://`, I believe that's by design so I didn't try to work around it.
+For the web, you only need to run the `build.sh` script to update the wasm binaries and reload your browser. Due to web platform restrictions you have to run the web repl from a webserver of any kind, a local (or remote) webserver should work fine. It just won't work on `file://`, I believe that's by design so I didn't try to work around it.
 
 ## Tests
 
@@ -45,26 +45,26 @@ While I like the idea of JS0, I'm not a fan of raising the bar and making a comp
 
 I liked "zero sugar" because for one it's a perfect pun on JS0/JSSugar and it's also a play on the "diet soft drinks", putting the JS syntax on a "diet".
 
-I wonder if it should be zero-sugar.js, .rjs, .rsjs, .rswasmjs, or whatever. Looks like `.rjs` is already taken by a few projects (like ruby js). So maybe `.rsjs`? Naming is hard.
-
 ## More
 
 If you're interested I've been trying to push this idea further with [Preval](https://github.com/pvdz/preval). That's a compiler written in JS that tries to push some boundaries on compiling JS syntax into more basic building blocks while remaining to be valid JS. It's goal was to try and compile away developer abstractions unnecessary for the production runtime. A never ending work in progress, I guess :)
 
 This compiler could apply all the things that older "6 to 5" compilers used to do (compiling es6 features to es5 or even es3). And beyond that it could be much more aggressive in trying to come up with a "MISC JS" ("minimal instruction set JS"), which is what JS0 probably wouldn't even want to target :p Eliminating `continue` and `finally` are good examples of this.
 
-More things:
+More things you could do:
 
 - Eliminate patterns
 - Eliminate variations of syntax
-    - Force all statements with sub-statements to be a block
+    - Force all statements with sub-statements to be a block (`{}`)
     - Force all while loops to be `while (true)`
     - Force all `if` statements to have an `else`
 - Eliminate variable / function hoisting
+- Eliminate arrows in favor of functions
 - Consolidate the `arguments` name and ban it after compilation
 - Eliminate scoping complexities by forcing every variable in the code to be unique
 - Force all labels to be unique
 - Squash labels that nest directly
+- Eliminate TS non-runtime code
 
 That sort of thing. What would be the MISC of JS syntax? How far can you reasonably push it?
 
