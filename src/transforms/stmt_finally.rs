@@ -14,6 +14,8 @@ use crate::transforms::builder::*;
 use crate::utils::example;
 use crate::utils::rule;
 
+const NO_ACTION_ID: f64 = 0.0;
+const NO_ACTION_ID_STR: &str = "0";
 const THROW_ACTION_ID: f64 = 1.0;
 const THROW_ACTION_ID_STR: &str = "1";
 const RETURN_ACTION_ID: f64 = 2.0;
@@ -116,9 +118,10 @@ fn transform_try_catch_finally<'a>(
 
     // Transform all statements to handle returns, breaks, and throws
     let mut new_try_body = OxcVec::with_capacity_in(block_body.len(), allocator);
+    let mut has_return = false;
     for stmt in block_body {
         if has_abrupt {
-            new_try_body.push(transform_return_breaks_recursively(
+            let (has_return2, stmt) = transform_return_breaks_recursively(
                 stmt,
                 allocator,
                 &action_var,
@@ -126,7 +129,9 @@ fn transform_try_catch_finally<'a>(
                 &new_try_label,
                 block_span,
                 &target_labels
-            ));
+            );
+            has_return = has_return || has_return2;
+            new_try_body.push(stmt);
         } else {
             new_try_body.push(stmt);
         }
@@ -159,7 +164,7 @@ fn transform_try_catch_finally<'a>(
                         // action_var = 2;
                         create_expression_statement(
                             allocator,
-                            create_assignment_expression_name(allocator, action_var.clone(), create_number_literal(allocator, 2.0, "2", finalizer_span), finalizer_span),
+                            create_assignment_expression_name(allocator, action_var.clone(), create_number_literal(allocator, THROW_ACTION_ID, THROW_ACTION_ID_STR, finalizer_span), finalizer_span),
                             finalizer_span
                         ),
 
@@ -216,7 +221,8 @@ fn transform_try_catch_finally<'a>(
         action_var,
         use_var,
         new_try_label,
-        target_labels
+        target_labels,
+        has_return
     )
 }
 
@@ -274,11 +280,12 @@ fn transform_try_finally<'a>(
     // Label is the new parent label of the try (may not be used)
     let new_try_label = state.next_ident_name();
 
+    let mut has_return = false;
     // Transform all statements to handle returns, breaks, and throws
     let mut new_try_body = OxcVec::with_capacity_in(block_body.len(), allocator);
     for stmt in block_body {
         if has_abrupt {
-            new_try_body.push(transform_return_breaks_recursively(
+            let (has_return2, stmt) = transform_return_breaks_recursively(
                 stmt,
                 allocator,
                 &action_var,
@@ -286,7 +293,9 @@ fn transform_try_finally<'a>(
                 &new_try_label,
                 block_span,
                 &target_labels
-            ));
+            );
+            has_return = has_return || has_return2;
+            new_try_body.push(stmt);
         } else {
             new_try_body.push(stmt);
         }
@@ -304,10 +313,10 @@ fn transform_try_finally<'a>(
                 allocator,
                 Some(create_binding_pattern(allocator, "e".to_string(), span)),
                 BlockStatement { body: OxcVec::from_iter_in([
-                    // action_var = 2
+                    // action_var = THROW_ACTION_ID
                     create_expression_statement(
                         allocator,
-                        create_assignment_expression_name(allocator, action_var.clone(), create_number_literal(allocator, 2.0, "2", span), span),
+                        create_assignment_expression_name(allocator, action_var.clone(), create_number_literal(allocator, THROW_ACTION_ID, THROW_ACTION_ID_STR, span), span),
                         span
                     ),
 
@@ -339,7 +348,8 @@ fn transform_try_finally<'a>(
         action_var,
         use_var,
         new_try_label,
-        target_labels
+        target_labels,
+        has_return
     )
 }
 
@@ -352,7 +362,8 @@ fn transform_finally_wrap<'a>(
     action_var: String,
     use_var: String,
     new_try_label: String,
-    target_labels: Vec<String>
+    target_labels: Vec<String>,
+    has_return: bool
 ) -> ( MapperAction, Statement<'a> ) {
     // Ok now we need to create the outer block that contains:
     // - the var bindings
@@ -362,7 +373,7 @@ fn transform_finally_wrap<'a>(
 
     let mut new_body = vec![
         // `var thrown = false; var thrown_value = undefined;`
-        create_variable_declaration_let(allocator, action_var.clone(), Some(create_number_literal(allocator, 0.0, "0", try_span)), try_span),
+        create_variable_declaration_let(allocator, action_var.clone(), Some(create_number_literal(allocator, NO_ACTION_ID, NO_ACTION_ID_STR, try_span)), try_span),
         create_variable_declaration_let(allocator, use_var.clone(), None, try_span),
 
         // The labeled block representing the `new_label: finally { ... }`
@@ -381,7 +392,7 @@ fn transform_finally_wrap<'a>(
             span: finalizer_span,
         }))),
 
-        // `if (action_var === 1) { throw use_var; }`
+        // `if (action_var === THROW_ACTION_ID) { throw use_var; }`
         create_if_statement(allocator,
             create_binary_expression(allocator, BinaryOperator::StrictEquality,
                 create_identifier_expression(allocator, action_var.clone(), finalizer_span),
@@ -393,9 +404,10 @@ fn transform_finally_wrap<'a>(
             try_span,
         ),
 
-        // TODO: If there's no explicit `return` then we don't need this `if` statement...
-        // `if (action_var === 2) { return use_var; }`
-        create_if_statement(allocator,
+    ];
+    if has_return {
+        // `if (action_var === RETURN_ACTION_ID) { return use_var; }`
+        new_body.push(create_if_statement(allocator,
             create_binary_expression(allocator, BinaryOperator::StrictEquality,
                 create_identifier_expression(allocator, action_var.clone(), finalizer_span),
                 create_number_literal(allocator, RETURN_ACTION_ID, RETURN_ACTION_ID_STR, finalizer_span),
@@ -404,8 +416,8 @@ fn transform_finally_wrap<'a>(
             create_return_statement(allocator, Some(create_identifier_expression(allocator, use_var.clone(), finalizer_span)), finalizer_span),
             None,
             try_span,
-        ),
-    ];
+        ));
+    }
 
     // Add an `if` statement for each unique break label target for breaks inside the try targeting labels outside the try
     for i in 0..target_labels.len() {
@@ -438,6 +450,7 @@ fn transform_finally_wrap<'a>(
     (MapperAction::Revisit, create_block_statement(allocator, OxcVec::from_iter_in(new_body, allocator), try_span))
 }
 
+// Returns the statement and whether it (recursively) had a `return` at all
 fn transform_return_breaks_recursively<'a>(
     stmt: Statement<'a>,
     allocator: &'a Allocator,
@@ -446,9 +459,10 @@ fn transform_return_breaks_recursively<'a>(
     new_try_label: &str,
     block_span: Span,
     target_labels: &Vec<String>
-) -> Statement<'a> {
+) -> (bool, Statement<'a>) {
     // Note: after all our transforms there should only be a handful of statements left
     // that can hold sub-statements: block, if, while, try, label, with. Ignoring functions, of course.
+
     match stmt {
         Statement::ReturnStatement(ret) => {
             let ReturnStatement { argument, span } = ret.unbox();
@@ -498,7 +512,7 @@ fn transform_return_breaks_recursively<'a>(
                 })))
             ], allocator);
 
-            create_block_statement(allocator, stmts, span)
+            (true, create_block_statement(allocator, stmts, span))
         }
 
         Statement::BreakStatement(break_stmt) => {
@@ -514,13 +528,13 @@ fn transform_return_breaks_recursively<'a>(
 
             let Some(index) = index else {
                 // If not found then the break targets a local label (defined inside the try) so we can ignore it
-                return Statement::BreakStatement(OxcBox(allocator.alloc(BreakStatement {
+                return (false, Statement::BreakStatement(OxcBox(allocator.alloc(BreakStatement {
                     label: Some(LabelIdentifier {
                         name: Atom::from(label),
                         span: block_span,
                     }),
                     span: block_span,
-                })));
+                }))));
             };
 
             let stmts = OxcVec::from_iter_in([
@@ -551,15 +565,16 @@ fn transform_return_breaks_recursively<'a>(
                 })))
             ], allocator);
 
-            create_block_statement(allocator, stmts, span)
+            (false, create_block_statement(allocator, stmts, span))
         }
 
         Statement::BlockStatement(block) => {
             let BlockStatement { body, span } = block.unbox();
             let mut new_body = OxcVec::with_capacity_in(body.len(), allocator);
 
+            let mut has_return = false;
             for stmt in body {
-                new_body.push(transform_return_breaks_recursively(
+                let (has_return2, stmt) = transform_return_breaks_recursively(
                     stmt,
                     allocator,
                     action_var,
@@ -567,52 +582,44 @@ fn transform_return_breaks_recursively<'a>(
                     new_try_label,
                     block_span,
                     &target_labels
-                ));
+                );
+                has_return = has_return || has_return2;
+                new_body.push(stmt);
             }
 
-            Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
+            (has_return, Statement::BlockStatement(OxcBox(allocator.alloc(BlockStatement {
                 body: new_body,
                 span,
-            })))
+            }))))
         }
         Statement::IfStatement(if_stmt) => {
             let IfStatement { test, consequent, alternate, span } = if_stmt.unbox();
 
-            Statement::IfStatement(OxcBox(allocator.alloc(IfStatement {
+            let (has_return, consequent) = transform_return_breaks_recursively(consequent, allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+            let (has_return2, alternate) = if let Some(alternate) = alternate {
+                let (has_return2, alternate) = transform_return_breaks_recursively(alternate, allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+                (has_return2, Some(alternate))
+            } else {
+                (false, None)
+            };
+
+            (has_return || has_return2, Statement::IfStatement(OxcBox(allocator.alloc(IfStatement {
                 test,
-                consequent: transform_return_breaks_recursively(
-                    consequent,
-                    allocator,
-                    action_var,
-                    use_var,
-                    new_try_label,
-                    block_span,
-                    &target_labels
-                ),
-                alternate: if let Some(alternate) = alternate {
-                    Some(transform_return_breaks_recursively(
-                        alternate,
-                        allocator,
-                        action_var,
-                        use_var,
-                        new_try_label,
-                        block_span,
-                        &target_labels
-                    ))
-                } else {
-                    None
-                },
+                consequent,
+                alternate,
                 span,
-            })))
+            }))))
         }
 
         Statement::WhileStatement(while_stmt) => {
             let WhileStatement { test, body, span } = while_stmt.unbox();
-            Statement::WhileStatement(OxcBox(allocator.alloc(WhileStatement {
+            let (has_return, body) = transform_return_breaks_recursively(body, allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+
+            (has_return, Statement::WhileStatement(OxcBox(allocator.alloc(WhileStatement {
                 test,
-                body: transform_return_breaks_recursively(body, allocator, action_var, use_var, new_try_label, block_span, &target_labels),
+                body,
                 span,
-            })))
+            }))))
         }
         Statement::TryStatement(try_stmt) => {
             let TryStatement { block: try_block, handler, finalizer, span: try_span } = try_stmt.unbox();
@@ -625,38 +632,44 @@ fn transform_return_breaks_recursively<'a>(
                 panic!("Since all finally blocks have been eliminated, we should always have a handler here.");
             };
             let CatchClause { param: catch_param, body: catch_body, span: catch_span } = handler.unbox();
-            Statement::TryStatement(OxcBox(allocator.alloc(TryStatement {
-                block: transform_return_breaks_recursively_in_block(try_block.unbox(), allocator, action_var, use_var, new_try_label, block_span, &target_labels),
+            let (has_return, try_block) = transform_return_breaks_recursively_in_block(try_block.unbox(), allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+            let (has_return2, catch_body) = transform_return_breaks_recursively_in_block(catch_body.unbox(), allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+
+            (has_return || has_return2, Statement::TryStatement(OxcBox(allocator.alloc(TryStatement {
+                block: try_block,
                 handler: Some(OxcBox(allocator.alloc(CatchClause {
                     param: catch_param,
-                    body: transform_return_breaks_recursively_in_block(catch_body.unbox(), allocator, action_var, use_var, new_try_label, block_span, &target_labels),
+                    body: catch_body,
                     span: catch_span,
                 }))),
                 finalizer: None,
                 span: try_span,
-            })))
+            }))))
         }
 
         Statement::LabeledStatement(labeled) => {
             let LabeledStatement { label, body, span } = labeled.unbox();
-            Statement::LabeledStatement(OxcBox(allocator.alloc(LabeledStatement {
+
+            let (has_return, body) = transform_return_breaks_recursively(body, allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+            (has_return, Statement::LabeledStatement(OxcBox(allocator.alloc(LabeledStatement {
                 label,
-                body: transform_return_breaks_recursively(body, allocator, action_var, use_var, new_try_label, block_span, &target_labels),
+                body,
                 span,
-            })))
+            }))))
         }
 
         Statement::WithStatement(_with) => {
             let WithStatement { object, body, span } = _with.unbox();
-            Statement::WithStatement(OxcBox(allocator.alloc(WithStatement {
+            let (has_return, body) = transform_return_breaks_recursively(body, allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+            (has_return, Statement::WithStatement(OxcBox(allocator.alloc(WithStatement {
                 object,
-                body: transform_return_breaks_recursively(body, allocator, action_var, use_var, new_try_label, block_span, &target_labels),
+                body,
                 span,
-            })))
+            }))))
         }
 
         // Do not visit functions. Anything else should be transformed or not have sub-statements.
-        _ => stmt,
+        _ => (false, stmt),
     }
 }
 
@@ -668,18 +681,21 @@ fn transform_return_breaks_recursively_in_block<'a>(
     new_try_label: &str,
     block_span: Span,
     target_labels: &Vec<String>
-) -> OxcBox<'a, BlockStatement<'a>> {
+) -> (bool, OxcBox<'a, BlockStatement<'a>>) {
     // This works around the `try/catch` case where the children are a Statement that is guaranteed
     // to be a BlockStatement (as per JS syntax) but the type system must assume a generic Statement.
     let BlockStatement { body, span } = block;
     let mut new_body = OxcVec::with_capacity_in(body.len(), allocator);
+    let mut has_return = false;
     for stmt in body {
-        new_body.push(transform_return_breaks_recursively(stmt, allocator, action_var, use_var, new_try_label, block_span, &target_labels));
+        let (has_return2, stmt) = transform_return_breaks_recursively(stmt, allocator, action_var, use_var, new_try_label, block_span, &target_labels);
+        has_return = has_return || has_return2;
+        new_body.push(stmt);
     }
-    OxcBox(allocator.alloc(BlockStatement {
+    (has_return, OxcBox(allocator.alloc(BlockStatement {
         body: new_body,
         span,
-    }))
+    })))
 }
 
 fn _abrupt_escape_analysis(stmt: &Statement) -> (bool, Vec<String>) {

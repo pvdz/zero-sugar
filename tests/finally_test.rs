@@ -64,14 +64,12 @@ fn test_basic_try_finally() {
     	$zeroSugar2:	try{
     		a();
     	}catch(e){
-    		$zeroSugar0 = 2;
+    		$zeroSugar0 = 1;
     		$zeroSugar1 = e;
     	}	{
     		b();
     	}
     	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -101,7 +99,7 @@ fn test_try_finally_with_return() {
     				break $zeroSugar2;
     			}
     		}catch(e){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = e;
     		}		{
     			b();
@@ -139,7 +137,7 @@ fn test_try_finally_with_return_in_both() {
     				break $zeroSugar2;
     			}
     		}catch(e){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = e;
     		}		{
     			return b();
@@ -170,14 +168,12 @@ fn test_try_finally_with_throw() {
     	$zeroSugar2:	try{
     		throw new Error();
     	}catch(e){
-    		$zeroSugar0 = 2;
+    		$zeroSugar0 = 1;
     		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
     	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -205,14 +201,12 @@ fn test_try_catch_finally() {
     		try{
     			handleError(err);
     		}catch($zeroSugar3){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = $zeroSugar3;
     		}	}	{
     		cleanup();
     	}
     	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -243,28 +237,21 @@ fn test_nested_try_finally() {
     			$zeroSugar2:			try{
     				a();
     			}catch(e){
-    				$zeroSugar0 = 2;
+    				$zeroSugar0 = 1;
     				$zeroSugar1 = e;
     			}			{
     				b();
     			}
     			if ($zeroSugar0 === 1) 			throw $zeroSugar1;
 
-    			if ($zeroSugar0 === 2) {
-    				$zeroSugar3 = 2;
-    				$zeroSugar4 = $zeroSugar1;
-    				break $zeroSugar5;
-    			}
     		}
     	}catch(e){
-    		$zeroSugar3 = 2;
+    		$zeroSugar3 = 1;
     		$zeroSugar4 = e;
     	}	{
     		c();
     	}
     	if ($zeroSugar3 === 1) 	throw $zeroSugar4;
-
-    	if ($zeroSugar3 === 2) 	return $zeroSugar4;
 
     }
     "#);
@@ -294,7 +281,7 @@ fn test_try_finally_with_return_value() {
     				break $zeroSugar2;
     			}
     		}catch(e){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = e;
     		}		{
     			cleanup();
@@ -325,14 +312,12 @@ fn test_try_finally_without_catch() {
     	$zeroSugar2:	try{
     		mayThrow();
     	}catch(e){
-    		$zeroSugar0 = 2;
+    		$zeroSugar0 = 1;
     		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
     	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -363,14 +348,12 @@ fn test_try_finally_with_break() {
     			}
     			a();
     		}catch(e){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = e;
     		}		{
     			cleanup();
     		}
     		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
-
-    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
 
     		if ($zeroSugar0 === 3) 		break;
 
@@ -415,7 +398,7 @@ fn test_try_finally_with_nested_return() {
     							break $zeroSugar2;
     						}
     					}catch(e){
-    						$zeroSugar0 = 2;
+    						$zeroSugar0 = 1;
     						$zeroSugar1 = e;
     					}					{
     						cleanup1();
@@ -435,7 +418,7 @@ fn test_try_finally_with_nested_return() {
     				break $zeroSugar5;
     			}
     		}catch(e){
-    			$zeroSugar3 = 2;
+    			$zeroSugar3 = 1;
     			$zeroSugar4 = e;
     		}		{
     			cleanup2();
@@ -478,14 +461,12 @@ fn test_try_finally_with_labeled_break() {
     				a();
     			}
     		}catch(e){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = e;
     		}		{
     			cleanup();
     		}
     		if ($zeroSugar0 === 1) 		throw $zeroSugar1;
-
-    		if ($zeroSugar0 === 2) 		return $zeroSugar1;
 
     		if ($zeroSugar0 === 3) 		break outer;
 
@@ -539,7 +520,7 @@ fn test_try_finally_with_nested_break_and_return() {
     							}
     							a();
     						}catch(e){
-    							$zeroSugar0 = 2;
+    							$zeroSugar0 = 1;
     							$zeroSugar1 = e;
     						}						{
     							cleanup1();
@@ -556,7 +537,7 @@ fn test_try_finally_with_nested_break_and_return() {
     					}
     				}
     			}catch(e){
-    				$zeroSugar3 = 2;
+    				$zeroSugar3 = 1;
     				$zeroSugar4 = e;
     			}			{
     				cleanup2();
@@ -600,7 +581,7 @@ fn test_try_finally_with_multiple_returns() {
     				break $zeroSugar2;
     			}
     		}catch(e){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = e;
     		}		{
     			cleanup();
@@ -635,14 +616,12 @@ fn test_try_finally_with_internal_break() {
     			break a;
     		}
     	}catch(e){
-    		$zeroSugar0 = 2;
+    		$zeroSugar0 = 1;
     		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
     	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     }
     "#);
@@ -668,14 +647,12 @@ fn test_try_finally_with_external_break() {
     			break $zeroSugar2;
     		}
     	}catch(e){
-    		$zeroSugar0 = 2;
+    		$zeroSugar0 = 1;
     		$zeroSugar1 = e;
     	}	{
     		cleanup();
     	}
     	if ($zeroSugar0 === 1) 	throw $zeroSugar1;
-
-    	if ($zeroSugar0 === 2) 	return $zeroSugar1;
 
     	if ($zeroSugar0 === 3) 	break a;
 
@@ -727,7 +704,7 @@ fn test_try_finally_with_nested_returns_in_blocks() {
     				break $zeroSugar2;
     			}
     		}catch(e){
-    			$zeroSugar0 = 2;
+    			$zeroSugar0 = 1;
     			$zeroSugar1 = e;
     		}		{
     			cleanup();
@@ -782,7 +759,7 @@ fn test_try_finally_with_mixed_breaks_and_returns() {
     				}
     				moreCode();
     			}catch(e){
-    				$zeroSugar0 = 2;
+    				$zeroSugar0 = 1;
     				$zeroSugar1 = e;
     			}			{
     				cleanup();
