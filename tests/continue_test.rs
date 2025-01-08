@@ -233,3 +233,59 @@ fn test_continue_in_arrow() {
     };
     "#);
 }
+
+#[test]
+fn test_continue_labeled() {
+    let result = parse_and_map(r#"
+        outer: while (x) {
+            inner: while (y) {
+                if (z) continue outer;
+                console.log(x, y);
+            }
+        }
+    "#);
+
+    assert_snapshot!(result, @r#"
+    outer:while(x)$zeroSugar0:{
+    	inner:	while(y)	{
+    		if (z) 		break $zeroSugar0;
+
+    		console.log(x, y);
+    	}
+    }
+    "#);
+}
+
+#[test]
+fn test_continue_nested_labeled() {
+    let result = parse_and_map(r#"
+        outer: while (x) {
+            inner: while (y) {
+                if (a) continue outer;
+                if (b) continue inner;
+                if (c) continue;
+                console.log(x, y);
+            }
+            if (d) continue;
+        }
+    "#);
+
+    assert_snapshot!(result, @r#"
+    outer:while(x)$zeroSugar0:{
+    	inner:	while(y)	$zeroSugar1:	{
+    		if (a) 		break $zeroSugar0;
+
+    		if (b) 		break $zeroSugar1;
+
+    		if (c) 		break $zeroSugar1;
+
+    		console.log(x, y);
+    	}
+    	if (d) 	break $zeroSugar0;
+
+    }
+    "#);
+}
+
+
+

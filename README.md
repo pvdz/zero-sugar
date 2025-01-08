@@ -8,6 +8,17 @@ Note: this is not a serious project. I made it as a joke. In its current form it
 
 There is a simple web REPL at my website: https://pvdz.ee/project/zero-sugar
 
+## Features
+
+Converts the following JS syntax away in favor of simpler JS:
+
+- `switch` statements, in favor of `if-else` chains
+- `continue` keyword, in favor of labeled `break`
+- `finally` blocks, in favor of `try/catch`
+- `for` loops, in favor of `while` loops
+- `do-while` loops, in favor of `while` loops
+- complex variable declarations (with patterns), in favor of step-by-step destructuring
+
 ## Usage
 
 This is a Rust project. You have to compile the code to wasm using the build.sh script which requires `wasm-pack` to be installed on your system.
