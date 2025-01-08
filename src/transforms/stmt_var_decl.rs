@@ -7,7 +7,6 @@ use oxc_span::Span;
 use oxc_syntax::operator::AssignmentOperator;
 use oxc_syntax::operator::BinaryOperator;
 use oxc_span::GetSpan;
-use oxc_syntax::reference::ReferenceFlag; // Makes expression.span() work
 
 use crate::log;
 use crate::mapper_state::MapperState;
@@ -126,7 +125,7 @@ fn transform_var_decl_any_decr<'a>(var_decl: VariableDeclaration<'a>, new_body: 
 
     decrs.into_iter().for_each(|decl| {
         log!("  - loop");
-        let VariableDeclaration { kind, declarations, span, modifiers: _modifiers } = decl;
+        let VariableDeclaration { kind: _kind, declarations, span: _span, modifiers: _modifiers } = decl;
         assert!(declarations.len() == 1, "caller should make sure each var decl has one decr");
         let decr = declarations.into_iter().next().unwrap();
         if transform_var_decl_declr(decr, new_body, allocator, state) == Changed::Yes {
@@ -185,7 +184,7 @@ fn confirm_var_decl_shape<'a>(body: &OxcVec<Statement<'a>>) -> bool {
 /// Transforms one var declarator and adds statements to the new body as necessary to deconstruct it.
 fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut OxcVec<Statement<'a>>, allocator: &'a Allocator, state: &mut MapperState) -> Changed {
     let VariableDeclarator { id, init, span: decr_span, kind: decl_kind, definite: _definite } = declr;
-    let BindingPattern { kind: id_kind, type_annotation: _type_annotation, optional } = id;
+    let BindingPattern { kind: id_kind, type_annotation: _type_annotation, optional: _optional } = id;
     match id_kind {
         BindingPatternKind::BindingIdentifier(binding_identifier) => {
             // `let x = y`
@@ -236,7 +235,7 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
             // This Vec<(name, is_computed)> is 1:1 with properties and reflects the final key ident
             let final_prop_names: Vec<(String, bool)> = properties.iter()
             .map(|prop| {
-                let BindingProperty { key: prop_lhs_key, value, span: prop_span, shorthand, computed } = prop;
+                let BindingProperty { key: prop_lhs_key, value: _value, span: _prop_span, shorthand: _shorthand, computed } = prop;
                 match prop_lhs_key {
                     PropertyKey::Identifier(ident) => (ident.name.to_string(), *computed),
                     PropertyKey::Expression(expr) => {
@@ -257,8 +256,8 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
 
             // First process regular props. Order is observable. Rest comes after.
             properties.into_iter().enumerate().for_each(|(prop_index, prop)| {
-                let BindingProperty { key: prop_lhs_key_only_used_for_computed, value, span: prop_span, shorthand, computed } = prop;
-                let BindingPattern { kind: prop_rhs_kind, type_annotation: _type_annotation, optional } = value;
+                let BindingProperty { key: prop_lhs_key_only_used_for_computed, value, span: prop_span, shorthand: _shorthand, computed } = prop;
+                let BindingPattern { kind: prop_rhs_kind, type_annotation: _type_annotation, optional: _optional } = value;
                 // TODO: `optional` patterns ? and shorthand and computed are implied, right?
 
                 let new_key_name = final_prop_names[prop_index].0.clone();
@@ -319,7 +318,7 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
                         //          ^^^^^^^
                         // `let {[a] = 1} = y`
                         let AssignmentPattern { left, right: default_value_expr, span } = assignment_pattern.unbox();
-                        let BindingPattern { kind: prop_lhs_kind, type_annotation: _type_annotation, optional } = left;
+                        let BindingPattern { kind: prop_lhs_kind, type_annotation: _type_annotation, optional: _optional } = left;
                         match prop_lhs_kind {
                             BindingPatternKind::BindingIdentifier(binding_identifier) => {
                                 // This is the default to a shorthand
@@ -409,7 +408,7 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
                                 ], allocator),
                                 false,
                                 None,
-                                decr_pattern_span
+                                rest_span
                             ),
                         ),
                         decr_pattern_span
@@ -459,7 +458,7 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
                 };
 
                 // Actual binding pattern of the element doesn't matter but we do have to capture the default case.
-                let BindingPattern { kind: prop_lhs_kind, type_annotation: _type_annotation, optional } = element;
+                let BindingPattern { kind: prop_lhs_kind, type_annotation: _type_annotation, optional: _optional } = element;
                 match prop_lhs_kind {
                     BindingPatternKind::BindingIdentifier(binding_identifier) => {
                         // `let [a] = y` -> `let a = y[0]`
@@ -496,7 +495,7 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
                 // `let [a, ...b] = y` -> `let a = y[0]; let b = y.slice(1)`
                 let RestElement { argument, span: rest_span } = rest.unbox();
                 // For rest, a pattern is valid syntax but default is not.
-                let BindingPattern { kind: prop_lhs_kind, type_annotation: _type_annotation, optional } = argument;
+                let BindingPattern { kind: prop_lhs_kind, type_annotation: _type_annotation, optional: _optional } = argument;
                 // `let [a, ...b] = y` -> `let a = y[0]; let b = y.slice(1)`
                 // `let [a, ...{length: b}] = y` -> `let a = y[0]; let {length: b} = y.slice(1)`
                 match prop_lhs_kind {

@@ -1,14 +1,6 @@
 use insta::assert_snapshot;
 
-use oxc_allocator::Allocator;
-use oxc_parser::Parser;
-use oxc_span::SourceType;
-use oxc_codegen::{Codegen, CodegenOptions};
-use oxc_ast::ast::*;
-
-use zero_sugar::mapper::{create_mapper, create_mapper_with_debug_id, MapperAction};
 use zero_sugar::transform_code;
-use zero_sugar::transforms::stmt_switch::transform_switch_statement;
 
 fn parse_and_map(source: &str) -> String {
     let transformed_code = transform_code(source);
