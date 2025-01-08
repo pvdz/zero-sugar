@@ -49,7 +49,7 @@ pub fn console_log(s: String) {
     println!("{}", s);
 
     #[cfg(target_arch = "wasm32")]
-    log(&format!("[Rust] {}", s));
+    log(&format!("[Rust]: {}", s));
 }
 
 // Simple wrapper for `log(format!())` into `log!()`
@@ -61,7 +61,7 @@ macro_rules! log {
         println!($fmt_str);
 
         #[cfg(target_arch = "wasm32")]
-        console_log(format!($fmt_str))
+        $crate::log(&format!("[Rust]: {}", $fmt_str));
     };
 
     ($fmt_str:literal, $($args:expr),*) => {
@@ -69,7 +69,7 @@ macro_rules! log {
         println!($fmt_str, $($args),*);
 
         #[cfg(target_arch = "wasm32")]
-        console_log(format!($fmt_str, $($args),*))
+        $crate::log(&format!("[Rust]: {}", format!($fmt_str, $($args),*)));
     };
 }
 
@@ -80,7 +80,7 @@ pub fn transform_code(source: &str) -> Result<TransformResult, JsValue> {
     let (transformed_program, transformed_code) = parse_and_map(source_str, &allocator);
 
     Ok(TransformResult {
-        transformed_ast: format!("{:?}", transformed_program),
+        transformed_ast: format!("{:#?}", transformed_program),
         transformed_code,
         had_error: false,
         error_message: None,

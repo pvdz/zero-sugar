@@ -260,7 +260,7 @@
 <body>
     <header>
         <h1 style="display:inline;">Zero Sugar REPL</h1>
-        &nbsp;<i>A compiler to transform JSSugar to JS0.</i> &nbsp;<small>By Peter van der Zee, 2025-01-05, &copy; <a href="https://pvdz.ee">pvdz.ee</a>. View source on <a href="https://github.com/pvdz/zero-sugar">GitHub</a>.</small>
+        &nbsp;<i>A compiler to transform JSSugar to JS0.</i> &nbsp;<small>By Peter van der Zee, January 2025, &copy; <a href="https://pvdz.ee">pvdz.ee</a>. View source on <a href="https://github.com/pvdz/zero-sugar">GitHub</a>.</small>
     </header>
 
     <main>
@@ -302,11 +302,11 @@ function example() {
         <div class="panel" id="description">
             <div class="panel-header">
                 <span>About</span>
-                <p>This is a REPL for zero-sugar.js, the Zero Sugar compiler. It's a tongue in cheek and incomplete compiler whose goal it is to reduce the syntax surface of the JS language by rewriting certain constructs ("JSSugar") into atomic building blocks ("JS0").</p>
+                <p>This is a REPL for the Zero Sugar compiler. It's a tongue in cheek and incomplete compiler whose goal it is to reduce the syntax surface of the JS language by rewriting certain constructs ("JSSugar") into atomic building blocks ("JS0").</p>
 
-                <p>I made zero-sugar.js more as a joke than antyhing else. I love writing this stuff but despite that I'm not sure I'm on board with the language forcing users into a compile step.</p>
+                <p>I made Zero Sugar more as a joke than anything else. I love writing this stuff but despite that I'm not sure I'm on board with the language forcing users into a compile step.</p>
 
-                <p>At the time of writing it supports a handful of features:</p>
+                <p>At the time of writing it supports a handful of transformations:</p>
 
                 <ul>
                     <li>Transform all loops (`for`, `for-of`, `for-in`, `do-while`) to regular `while` loops</li>
@@ -318,7 +318,7 @@ function example() {
 
                 <p>This work is inspired by my <a href="https://github.com/pvdz/preval">Preval project</a>, which tries to reduce the input source to simple building blocks to make optimizations easier by reducing transformation complexity.</p>
 
-                <p>This project was made in Rust using the Oxc parser (only) to parse the code. It is compiled to WebAssembly and can run in the browser and node.js.</p>
+                <p>This project was made in Rust using the [Oxc parser](https://github.com/oxc-project/oxc) (only) to parse the code. It is compiled to WebAssembly and can run in the browser and node.js.</p>
 
                 <p>I don't expect this project to be extended but <a href="https://bsky.app/profile/pvdz.ee">I'm open to suggestions</a>.</p>
             </div>
@@ -326,7 +326,7 @@ function example() {
     </main>
 
     <script type="module">
-        import init, { transform_code } from '../../pkg/zero_sugar.js';
+        import init, { transform_code } from './zero_sugar.js';
 
         async function main() {
             await init();
@@ -346,7 +346,7 @@ function example() {
                     if (result.had_error) {
                         debugContent.textContent = `Error: ${result.error_message}`;
                     } else {
-                        debugContent.textContent = 'Transform completed successfully.\n\nAST:\n' + result.transformed_ast;
+                        debugContent.textContent = 'Transform completed successfully (see console for debug).\n\nAST:\n' + result.transformed_ast;
                     }
                 } catch (e) {
                     debugContent.textContent = `Error: ${e.message}`;
