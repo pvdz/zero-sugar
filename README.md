@@ -7,6 +7,7 @@ Note: this is not a serious project. I made it as a joke. In its current form it
 ## REPL
 
 There is a simple web REPL at my website: https://pvdz.ee/project/zero-sugar
+
 There's also one on GitHub Pages: https://pvdz.github.io/zero-sugar/src/web/
 
 Note: the wasm binary that's in the the repo in `src/html/` is manually compiled to make the REPL work in GitHub Pages. `wasm-pack build --target web` and then copy `./pkg/zero_sugar.js` and `./pkg/zero_sugar_bg.wasm` to `./src/html`.
