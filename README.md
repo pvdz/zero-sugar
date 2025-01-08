@@ -1,12 +1,13 @@
 # Zero Sugar
 
-This is a REPL for the Zero Sugar compiler. It's a tongue in cheek compiler whose goal it is to reduce the syntax surface of the JS language by rewriting certain high levelconstructs ("JSSugar") into atomic building blocks ("JS0").
+This is a REPL for the Zero Sugar compiler. It's a tongue in cheek compiler whose goal it is to reduce the syntax surface of the JS language by rewriting certain high levelconstructs ("JSSugar") into atomic building blocks ("JS0"). _See TC39 presentation [here](https://docs.google.com/presentation/d/1ylROTu3N6MyHzNzWJXQAc7Bo1O0FHO3lNKfQMfPOA4o/edit#slide=id.p)_
 
 Note: this is not a serious project. I made it as a joke. In its current form it shouldn't be used for anything serious and is in no way production ready. At this time I'm not planning on making this anything serious either (that would probably end up being more of a rewrite of [Preval](https://github.com/pvdz/preval)) but I'm open to suggestions.
 
 ## REPL
 
 There is a simple web REPL at my website: https://pvdz.ee/project/zero-sugar
+There's also one on GitHub Pages: https://pvdz.github.io/zero-sugar/src/web/
 
 Note: the wasm binary that's in the the repo in `src/html/` is manually compiled to make the REPL work in GitHub Pages. `wasm-pack build --target web` and then copy `./pkg/zero_sugar.js` and `./pkg/zero_sugar_bg.wasm` to `./src/html`.
 
