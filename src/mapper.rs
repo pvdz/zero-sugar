@@ -24,6 +24,7 @@ pub enum MapperAction {
 }
 
 pub struct Mapper<'a> {
+    debug_id: String,
     allocator: &'a Allocator,
     visitors_stmt: Vec<Box<dyn Fn(Statement<'a>, &'a Allocator, bool) -> (MapperAction, Statement<'a>)>>,
     visitors_expr: Vec<Box<dyn Fn(Expression<'a>, &'a Allocator, bool) -> (MapperAction, Expression<'a>)>>,
@@ -39,11 +40,16 @@ pub enum Node<'a> {
 impl<'a> Mapper<'a> {
     pub fn new(allocator: &'a Allocator) -> Self {
         Self {
+            debug_id: "".to_string(),
             allocator,
             visitors_stmt: Vec::new(),
             visitors_expr: Vec::new(),
             state: Rc::new(RefCell::new(MapperState { id_counter: 0, continue_targets: vec![] })),
         }
+    }
+
+    pub fn set_debug_id(&mut self, debug_id: String) {
+        self.debug_id = debug_id;
     }
 
     pub fn add_visitor_stmt<F>(&mut self, visitor: F)
@@ -80,7 +86,7 @@ impl<'a> Mapper<'a> {
         let mut visit_again = true;
         let mut enter_node;
         while visit_again {
-            log!("Enter statement {:?}", format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
+            log!("{}Enter statement {:?}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
             enter_node = true;
             visit_again = false;
 
@@ -89,7 +95,7 @@ impl<'a> Mapper<'a> {
                 stmt = new_stmt;
                 if action == MapperAction::Revisit {
                     visit_again = true;
-                    log!("Revisit statement {:?}", format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
+                    log!("{}Revisit statement {:?}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
                     break;
                 }
                 enter_node |= action == MapperAction::Normal;
@@ -203,7 +209,9 @@ impl<'a> Mapper<'a> {
                         Statement::ReturnStatement(OxcBox(self.allocator.alloc(ReturnStatement { argument, span })))
                     }
                     Statement::SwitchStatement(switch) => {
-                        Statement::SwitchStatement(OxcBox(self.allocator.alloc(self.map_switch_statement(switch.unbox()))))
+                        let SwitchStatement { discriminant, cases, span } = self.map_switch_statement(switch.unbox());
+
+                        Statement::SwitchStatement(OxcBox(self.allocator.alloc(SwitchStatement { discriminant, cases, span })))
                     }
                     Statement::ThrowStatement(throw) => {
                         let ThrowStatement { argument, span } = throw.unbox();
@@ -309,12 +317,12 @@ impl<'a> Mapper<'a> {
                 stmt = new_stmt;
                 if action == MapperAction::Revisit {
                     visit_again = true;
-                    log!("Revisit statement {:?}", format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
+                    log!("{}Revisiting statement {:?}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
                     break;
                 }
             }
 
-            log!("Leave statement {:?}", format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
+            log!("{}Leave statement {:?}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", stmt).split(' ').next().unwrap_or(format!("{:?}", stmt).as_str()));
         }
 
         stmt
@@ -326,20 +334,31 @@ impl<'a> Mapper<'a> {
         let discriminant = self.map_expression(discriminant);
         let mut new_cases = OxcVec::with_capacity_in(cases.len(), self.allocator);
 
+        let mut case_index = 0;
+        let case_count = cases.len();
         for case in cases {
+            log!("{}Enter switch case {} of {}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, case_index, case_count);
             let test = case.test.map(|test| self.map_expression(test));
             let mut new_consequent = OxcVec::with_capacity_in(case.consequent.len(), self.allocator);
             for stmt in case.consequent {
                 new_consequent.push(self.map_statement(stmt));
             }
             new_cases.push(SwitchCase { test, consequent: new_consequent, span: case.span });
+            case_index += 1;
         }
 
         SwitchStatement { discriminant, cases: new_cases, span }
     }
 
     fn map_expression(&self, mut expr: Expression<'a>) -> Expression<'a> {
-        log!("Enter expression {:?}", format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()));
+        log!("{}Enter expression {:?} {}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()),
+            if let Expression::Identifier(id) = &expr {
+                format!("id: {}", id.name)
+            } else {
+                "".to_string()
+            }
+        );
+
         // Apply before visitors first
         let mut visit_again = true;
         let mut enter_node;
@@ -352,7 +371,7 @@ impl<'a> Mapper<'a> {
                 expr = new_expr;
                 if action == MapperAction::Revisit {
                     visit_again = true;
-                    log!("Revisit expression {:?}", format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()));
+                    log!("{}Revisit expression {:?}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()));
                     break;
                 }
                 enter_node |= action == MapperAction::Normal;
@@ -836,13 +855,19 @@ impl<'a> Mapper<'a> {
                 expr = new_expr;
                 if action == MapperAction::Revisit {
                     visit_again = true;
-                    log!("Enter expression {:?}", format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()));
+                    log!("{}Revisiting expression {:?}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()));
                     break;
                 }
             }
         }
 
-        log!("Leave expression {:?}", format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()));
+        log!("{}Leave expression {:?} {}", if self.debug_id.len() > 0 { format!("{}: ", self.debug_id) } else { "".to_string() }, format!("{:?}", expr).split(' ').next().unwrap_or(format!("{:?}", expr).as_str()),
+            if let Expression::Identifier(id) = &expr {
+                format!("id: {}", id.name)
+            } else {
+                "".to_string()
+            }
+        );
         expr
     }
 
@@ -1223,4 +1248,10 @@ impl<'a> Mapper<'a> {
 // Simple builder pattern for creating walkers
 pub fn create_mapper<'a>(allocator: &'a Allocator) -> Mapper<'a> {
     Mapper::new(allocator)
+}
+
+pub fn create_mapper_with_debug_id<'a>(allocator: &'a Allocator, debug_id: String) -> Mapper<'a> {
+    let mut mapper = Mapper::new(allocator);
+    mapper.set_debug_id(debug_id);
+    mapper
 }

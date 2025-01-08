@@ -19,6 +19,8 @@ use crate::transforms::builder::create_if_statement;
 use crate::transforms::builder::create_member_expression;
 use crate::transforms::builder::create_member_expression_computed;
 use crate::transforms::builder::create_variable_declarator_pattern;
+use crate::utils::example;
+use crate::utils::rule;
 use super::builder::create_array_expression;
 use super::builder::create_call_expression;
 use super::builder::create_member_expression_computed_ident;
@@ -54,6 +56,7 @@ pub fn transform_var_decl_statement<'a>(
         return (MapperAction::Normal, Statement::BlockStatement(OxcBox(allocator.alloc(block))));
     }
     log!("- transform_var_decl_statement");
+
 
     let BlockStatement { body, span } = block;
 
@@ -98,6 +101,11 @@ fn transform_var_decl_any_decr<'a>(var_decl: VariableDeclaration<'a>, new_body: 
     log!("- transform_var_decl");
 
     // First split a multi-decr into a single-decr decl
+
+    if declarations.len() > 1 {
+        rule("Transform var decl with multiple declarators into multiple var decls with a single declarator");
+        example("let x = a, y = b;", "let x = a; let y = b;");
+    }
 
     let decrs = declarations.into_iter().map(|decl| {
         VariableDeclaration {
@@ -189,6 +197,9 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
             todo!("What code leads to a BindingPatternKind::AssignmentPattern as id of a VariableDeclarator?");
         }
         BindingPatternKind::ObjectPattern(object_pattern) => {
+            rule("Transform var decl binding pattern to var decls without binding pattern");
+            example("let {x} = a;", "let x = a.x;");
+
             // `let {a} = y` -> `let a = y.a`
             // `let {a: b} = y` -> `let b = y.a`
             // `let {a: {b}} = y` -> `let tmp = y.a; let b = tmp.b`
@@ -410,6 +421,9 @@ fn transform_var_decl_declr<'a>(declr: VariableDeclarator<'a>, new_body: &mut Ox
             Changed::Yes
         }
         BindingPatternKind::ArrayPattern(array_pattern) => {
+            rule("Transform var decl binding pattern to var decls without binding pattern");
+            example("let [x] = a;", "let x = a[0];");
+
             // `let [a] = y` -> `let a = y[0]`
             // `let [a, b] = y` -> `let a = y[0]; let b = y[1]`
             // `let [a = b] = y` -> `let a = y[0]; if (a === undefined) a = b`

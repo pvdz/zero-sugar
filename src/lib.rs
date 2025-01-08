@@ -3,7 +3,9 @@ pub mod walker;
 pub mod mapper;
 pub mod get_stmt_span;
 pub mod mapper_state;
+pub mod utils;
 
+use mapper::create_mapper_with_debug_id;
 use transforms::stmt_continue::apply_continue_transform_updates;
 use transforms::stmt_for_in::transform_for_in_statement;
 use transforms::stmt_for_of::transform_for_of_statement;
@@ -18,7 +20,7 @@ use oxc_ast::ast::*;
 use oxc_span::Span;
 use oxc_codegen::{Codegen, CodegenOptions};
 
-use crate::mapper::{create_mapper, MapperAction};
+use crate::mapper::MapperAction;
 use crate::transforms::stmt_do_while::transform_do_while_statement;
 use crate::transforms::stmt_for_n::transform_for_n_statement;
 use crate::transforms::stmt_finally::transform_finally_statement;
@@ -94,10 +96,11 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
         panic!("Input code could not be parsed: {:?}", parsed.errors);
     }
 
-    let mut mapper = create_mapper(allocator);
+    let mut mapper = create_mapper_with_debug_id(allocator, "root".to_string());
     let state = mapper.state.clone();
 
     mapper.add_visitor_stmt(move |stmt, allocator, before: bool| {
+        log!("  Visitor call: before: {}", before);
         // This part purely deals with wrapping loop bodies in a labeled statement for the sake of eliminating continue statements.
         let stmt = apply_continue_transform_updates(stmt, before, allocator, &mut state.borrow_mut());
 
@@ -133,6 +136,7 @@ fn parse_and_map<'a>(source: &'static str, allocator: &'a Allocator) -> (Program
     });
 
     let transformed = mapper.map(parsed.program);
+
     let codegen: Codegen<false> = Codegen::new(transformed.span.end as usize, CodegenOptions::default());
     let transformed_code = codegen.build(&transformed);
 

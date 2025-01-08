@@ -5,12 +5,17 @@ use oxc_allocator::Allocator;
 
 use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
+use crate::utils::example;
+use crate::utils::rule;
 
 pub fn transform_for_n_statement<'a>(
     for_stmt: ForStatement<'a>,
     allocator: &'a Allocator,
     _state: &mut MapperState
 ) -> (MapperAction, Statement<'a>) {
+    rule("Eliminate regular for-loop in favor of regular while");
+    example("for (x; y; z) { body; }", "x; while (y) { { body; } z; }");
+
     let ForStatement { init, test, update, body, span } = for_stmt;
 
     // Create the while loop test expression - defaults to true if no test provided

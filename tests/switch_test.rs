@@ -6,46 +6,13 @@ use oxc_span::SourceType;
 use oxc_codegen::{Codegen, CodegenOptions};
 use oxc_ast::ast::*;
 
-use zero_sugar::mapper::{create_mapper, MapperAction};
+use zero_sugar::mapper::{create_mapper, create_mapper_with_debug_id, MapperAction};
+use zero_sugar::transform_code;
 use zero_sugar::transforms::stmt_switch::transform_switch_statement;
 
 fn parse_and_map(source: &str) -> String {
-    let allocator = Allocator::default();
-    let source_type = SourceType::default().with_module(true);
-    let parser = Parser::new(&allocator, source, source_type);
-    let parsed = parser.parse();
-
-    if !parsed.errors.is_empty() {
-        panic!("Input code could not be parsed: {:?}", parsed.errors);
-    }
-
-    let mut mapper = create_mapper(&allocator);
-    let state = mapper.state.clone();
-
-    mapper.add_visitor_stmt(move |stmt, allocator, before: bool| match ( before, stmt ) {
-        (false, Statement::SwitchStatement(switch_stmt)) => {
-            transform_switch_statement(switch_stmt.unbox(), allocator, &mut state.borrow_mut())
-        }
-        (_, other) => (MapperAction::Normal, other),
-    });
-
-    let transformed = mapper.map(parsed.program);
-    let codegen: Codegen<false> = Codegen::new(transformed.span.end as usize, CodegenOptions::default());
-
-    let out = codegen.build(&transformed);
-
-    // Confirm that the output is at least valid
-    {
-        let out = out.clone();
-        let parser = Parser::new(&allocator, &out, source_type);
-        let parsed = parser.parse();
-        if !parsed.errors.is_empty() {
-            panic!("Transformed code could not be parsed: {:?}", parsed.errors);
-        }
-    }
-
-    out
-
+    let transformed_code = transform_code(source);
+    transformed_code.unwrap().transformed_code
 }
 
 #[test]
@@ -454,18 +421,24 @@ fn test_switch_transform_nested_do_first() {
     "#);
 
     assert_snapshot!(result, @r#"
-    $zeroSugar0:{
-    	let $zeroSugar2 = 2;
-    	if ($zeroSugar2 === a) 	$zeroSugar2 = 0;
-     else if ($zeroSugar2 === b) 	$zeroSugar2 = 1;
+    $zeroSugar1:{
+    	let $zeroSugar3 = 2;
+    	if ($zeroSugar3 === a) 	$zeroSugar3 = 0;
+     else if ($zeroSugar3 === b) 	$zeroSugar3 = 1;
 
-    	if ($zeroSugar2 <= 0) {
+    	if ($zeroSugar3 <= 0) {
     	}
-    	if ($zeroSugar2 <= 1) {
-    		while(true)		{
-    			break;
+    	if ($zeroSugar3 <= 1) {
+    		{
+    			let $zeroSugar0 = true;
+    			while($zeroSugar0)			{
+    				{
+    					break $zeroSugar1;
+    				}
+    				$zeroSugar0 = true;
+    			}
     		}
-    		break $zeroSugar0;
+    		break $zeroSugar1;
     	}
     }
     "#);

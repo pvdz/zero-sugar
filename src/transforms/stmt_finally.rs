@@ -11,6 +11,8 @@ use oxc_span::Span;
 use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
 use crate::transforms::builder::*;
+use crate::utils::example;
+use crate::utils::rule;
 
 const THROW_ACTION_ID: f64 = 1.0;
 const THROW_ACTION_ID_STR: &str = "1";
@@ -33,8 +35,17 @@ pub fn transform_finally_statement<'a>(
     if try_stmt.finalizer.is_none() {
         ( MapperAction::Normal, Statement::TryStatement(OxcBox(allocator.alloc(try_stmt))) )
     } else if try_stmt.handler.is_some() {
+        rule("Eliminate try/catch/finally in favor of a try/catch/try/catch statement");
+        example(
+            "try { a(); } catch (e) { b(e); } finally { c(); }",
+            "let thrown = false; let val; let action = 0; try { a(); } catch (e) { try { b(e); } catch (e2) { thrown = true; val = e2; } } c(); if (thrown) throw val;"
+        );
+
         transform_try_catch_finally(try_stmt, allocator, state)
     } else {
+        rule("Eliminate try/finally statement in favor of a try/catch statement");
+        example("try { a(); } finally { c(); }", "let thrown = false; let val; try { a(); } catch (e) { thrown = true; val = e; } c(); if (thrown) throw val;");
+
         transform_try_finally(try_stmt, allocator, state)
     }
 }

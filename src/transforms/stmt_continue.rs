@@ -9,6 +9,7 @@ use crate::log;
 use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
 use crate::transforms::builder::create_labeled_stmt;
+use crate::utils::{example, rule};
 
 /// Transform a continue statement into a labeled block with a break.
 /// There are two cases to deal with: labeled and unlabeled continue.
@@ -83,6 +84,9 @@ pub fn transform_continue_statement<'a>(
     allocator: &'a Allocator,
     state: &mut MapperState
 ) -> (MapperAction, Statement<'a>) {
+    rule("Eliminate continue statement in favor of a break statement");
+    example("while (x) { if (y) continue; z; }", "while (x) again: { { if (y) break again; z; } }");
+
     log!("transform_continue_statement");
     let ContinueStatement { label: target_label, span } = continue_stmt;
     let target_label = match target_label {

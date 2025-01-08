@@ -6,6 +6,8 @@ use oxc_syntax::operator::BinaryOperator;
 
 use crate::mapper_state::MapperState;
 use crate::mapper::MapperAction;
+use crate::utils::example;
+use crate::utils::rule;
 use super::builder::create_assignment_expression;
 use super::builder::create_assignment_expression_name;
 use super::builder::create_binary_expression;
@@ -61,6 +63,9 @@ pub fn transform_for_in_statement<'a>(
     // }
     // ```
     //
+
+    rule("Eliminate for-in loop in favor of regular while");
+    example("for (x in y) { body; }", "let $tmp = $forIn(y); let $next; while ($next = $tmp.next()) { if ($next.done) break; x = $next.value; { body; } }");
 
     let ForInStatement { left, right, body, span } = for_stmt;
 

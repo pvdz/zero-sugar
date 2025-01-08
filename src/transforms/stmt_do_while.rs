@@ -9,12 +9,17 @@ use oxc_allocator::Allocator;
 
 use crate::mapper::MapperAction;
 use crate::mapper_state::MapperState;
+use crate::utils::example;
+use crate::utils::rule;
 
 pub fn transform_do_while_statement<'a>(
     do_while: DoWhileStatement<'a>,
     allocator: &'a Allocator,
     state: &mut MapperState
 ) -> (MapperAction, Statement<'a>) {
+    rule("Eliminate d-while in favor of regular while");
+    example("do { x }; while (y);", "let tmp = true; while (test) { { x; } test = y; }");
+
     let loop_test_ident = state.next_ident_name();
 
     let DoWhileStatement { body, test, span } = do_while;

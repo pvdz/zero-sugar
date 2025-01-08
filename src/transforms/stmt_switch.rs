@@ -14,6 +14,8 @@ use crate::mapper::create_mapper;
 use crate::mapper_state::MapperState;
 use crate::mapper::MapperAction;
 use crate::transforms::builder::*;
+use crate::utils::example;
+use crate::utils::rule;
 
 /// Transform a switch statement into an if-else chain
 /// For the simple case where each case is a block you can store the discriminant in a temp var and then use that to build the if-else chain.
@@ -50,6 +52,12 @@ pub fn transform_switch_statement<'a>(
     allocator: &'a Allocator,
     state: &mut MapperState
 ) -> (MapperAction, Statement<'a>) {
+
+    rule("Eliminate switch statement in favor of if-else chain");
+    example(
+        "switch (test) { case a: x; break; case b: y; default: z; }",
+        "let result = 3; if (test === a) { result = 1; } else if (test === b) { result = 2; } else { result = 3; } root: { if (result <= 0) { x; break root; } if (result <= 1) { y; } if (result <= 2) { z; } }",
+    );
 
     // Step 1: Transform unlabeled breaks that target this switch to labeled breaks
 

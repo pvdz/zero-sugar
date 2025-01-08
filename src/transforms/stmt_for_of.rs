@@ -6,6 +6,8 @@ use oxc_syntax::operator::BinaryOperator;
 
 use crate::mapper_state::MapperState;
 use crate::mapper::MapperAction;
+use crate::utils::example;
+use crate::utils::rule;
 use super::builder::create_assignment_expression;
 use super::builder::create_assignment_expression_name;
 use super::builder::create_binary_expression;
@@ -28,6 +30,10 @@ pub fn transform_for_of_statement<'a>(
     allocator: &'a Allocator,
     state: &mut MapperState
 ) -> (MapperAction, Statement<'a>) {
+
+    rule("Eliminate for-of loop in favor of regular while");
+    example("for (x of y) { body; }", "let $tmp = $forOf(y); let $next; while ($next = $tmp.next()) { if ($next.done) break; x = $next.value; { body; } }");
+
     // We cheese this a little bit. Transform the for-of to a while-loop assuming an exposed $forOf function that converts for-of to an iterator.
     // This way we can eliminate the syntactical for-of statement and hide the actual syntax. This simplifies other transforms since we can consolidate
     // all loops to a regular `while` statement.
